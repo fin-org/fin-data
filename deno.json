@@ -1,6 +1,6 @@
 {
   "imports": {
-    "std/": "https://deno.land/std@0.216.0/",
-    "fast-check": "https://esm.sh/fast-check@3.15.1"
+    "std/": "https://deno.land/std@0.219.1/",
+    "fast-check": "https://esm.sh/fast-check@3.16.0"
   }
 }
