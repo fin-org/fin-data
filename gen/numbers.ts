@@ -28,13 +28,15 @@ export const number = fc.tuple(
   fc.option(frac),
   fc.option(exp),
 ).map(
-  ([n, i, f, e]) => `${n ? "-" : ""}${i}${f ?? ""}${e ?? ""}`,
+  ([n, i, f, e]) => ({
+    type: "number",
+    str: `${n ? "-" : ""}${i}${f ?? ""}${e ?? ""}`,
+  }),
 );
 
 if (import.meta.main) {
   console.log("a sample of numbers...");
   for (const s of fc.sample(number, 20)) {
-    console.log();
     console.log(s);
   }
 }

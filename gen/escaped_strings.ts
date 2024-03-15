@@ -18,12 +18,11 @@ export const escaped_string = fc.stringOf(fc.oneof(
   { arbitrary: unicode_char, weight: 10 },
   { arbitrary: common_esc, weight: 2 },
   { arbitrary: unicode_esc, weight: 1 },
-)).map((inner) => `\"${inner}\"`);
+)).map((inner) => ({ type: "escaped_string", str: `\"${inner}\"` }));
 
 if (import.meta.main) {
   console.log("a sample of escaped strings...");
   for (const s of fc.sample(escaped_string, 20)) {
-    console.log();
     console.log(s);
   }
 }

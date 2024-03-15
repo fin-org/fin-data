@@ -1,20 +1,14 @@
 import * as fc from "fast-check";
-import { symbol } from "./symbols.ts";
 
-const extension = fc.oneof(
-  // booleans
-  fc.boolean().map((b) => `${b}`),
-  // fin: symbols
-  symbol.map((s) => `fin:${s}`.replace(/::+/g, ":")),
-  // ext: symbols
-  symbol.map((s) => `ext:${s}`.replace(/::+/g, ":")),
-  // TODO... improve
+export const boolean = fc.oneof(
+  fc.boolean().map((b) => ({ type: "symbol", str: `${b}` })),
 );
+
+// TODO more extensions. incl non-values
 
 if (import.meta.main) {
   console.log("a sample of extensions...");
-  for (const s of fc.sample(extension, 20)) {
-    console.log();
+  for (const s of fc.sample(boolean, 20)) {
     console.log(s);
   }
 }
