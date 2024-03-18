@@ -105,7 +105,7 @@ export function to_formatted_nodes(data: any) {
 
       // render the correct gap
       if (parent.midline) {
-        output.push({ str: parent.gap.startsWith("\n") ? parent.gap : "\n" });
+        output.push({ str: parent.gap?.startsWith("\n") ? parent.gap : "\n" });
         parent.midline = false;
       } else if (parent.gap) {
         output.push({ str: parent.gap });
@@ -124,32 +124,48 @@ export function to_formatted_nodes(data: any) {
       parent.gap = undefined;
 
       // ---
-    } else if (node.type === "TODO") {
+    } else if (node.type === "map_entry") {
       // --- MAP ENTRIES ---
+      const { parent } = node;
 
-      if (node.parent.expanded) {
-        // expanded
-        const is_key_block = blocks.has(node.key.type);
-        const is_val_block = blocks.has(node.val.type);
-        if (is_key_block && is_val_block) {
-          // block
-          // =
-          // block
-        } else if (!is_key_block && !is_val_block) {
-          // non-block = non-block
-        } else if (is_key_block) {
-          // block
-          // = non-block
+      // TODO WIP. need wider range of inputs... perhaps hand crafted!
+      if (parent.expanded) {
+        const key_block = blocks.has(node.key.type);
+        const val_block = blocks.has(node.val.type);
+        if (parent.midline) {
+          // render the correct gap
+          if (!key_block && parent.gap === ",") {
+            output.push({ str: ", " });
+          } else {
+            output.push({
+              str: parent.gap?.startsWith("\n") ? parent.gap : "\n",
+            });
+          }
         } else {
-          // non-block =
-          // block
+          if (parent.gap) output.push({ str: parent.gap });
+          node.key.depth = parent.depth; // indent the key on a new line
+          if (key_block) node.eq = parent.depth; // indent the eq
+          if (val_block) node.val = parent.depth; // indent the val
         }
+        parent.midline = !val_block;
+        parent.gap = undefined;
       } else {
-        // inline
-        if (node.expanded) throw new Error("parent not expanded");
+        if (parent.gap) output.push({ str: parent.gap });
+        else parent.gap = ", ";
       }
+      stack.push(node.val);
+      stack.push(node.eq);
+      stack.push(node.key);
 
       //
+    } else if (node.type === "eq") {
+      delete node.parent;
+      node.str = "\t".repeat(node.depth) + "=";
+      output.push(node);
+    } else if (node.type === "symbol") {
+      delete node.parent;
+      node.str = "\t".repeat(node.depth) + node.str;
+      output.push(node);
     } else {
       throw node;
     }
@@ -171,58 +187,32 @@ if (import.meta.main) {
   const data = {
     type: "map",
     tag: null,
-    elements: [
-      { type: "gap", str: "" },
-      { type: "gap", str: " \t\n" },
-      { type: "gap", str: "\n \t," },
-      {
-        type: "comment",
-        str: "#𐟧𹤮򛿥\n\t\t \t #熞񂲦𙟩󵘜򽌧򩢮񦣥\n\t \t\t\t #鏜񴣘󌕛𽤄􀣮󌀾񆊱\n\t #񛂠𚊓򴾿򈟕𿑄񶫉񯮹򘣑\n",
-        expanded: true,
-      },
-      { type: "gap", str: ",\n " },
-      { type: "comment", str: "#$񛿛򩼀.񬷡򇭅쒃\n \t\t", expanded: true },
-      { type: "gap", str: "" },
-      { type: "gap", str: "," },
-    ],
     expanded: true,
     top: true,
+    elements: [
+      {
+        type: "map_entry",
+        key: { type: "symbol", str: "a" },
+        eq: { type: "eq", str: "=" },
+        val: { type: "symbol", str: "b" },
+      },
+      { type: "gap", str: " , " },
+      {
+        type: "map_entry",
+        key: { type: "symbol", str: "c" },
+        eq: { type: "eq", str: "=" },
+        val: { type: "symbol", str: "d" },
+      },
+      { type: "gap", str: "\n, " },
+      {
+        type: "map_entry",
+        key: { type: "symbol", str: "e" },
+        eq: { type: "eq", str: "=" },
+        val: { type: "symbol", str: "f" },
+      },
+    ],
   };
 
-  // {
-  //   type: "map",
-  //   tag: null,
-  //   elements: [
-  //     {
-  //       type: "comment",
-  //       str: "#󗒉򾯹򀘷󸞧𶜁𶠔􉚓􈋤񺫉򢂦\n" +
-  //         "\t    #\n" +
-  //         "\t  \t #󚢽򖰶򺋨馽򖲳􇆅􎜲󘌍\n" +
-  //         "\t\t   #󠥇񯽱򤾘\n" +
-  //         "#ᦽ񅀮󿌋\n" +
-  //         "#񓑋񣇈\n" +
-  //         "\t \t\t \t#򰩏􌷂􊑦󩹕𹛈𱦵\n" +
-  //         "  \t ",
-  //       expanded: true,
-  //     },
-  //     {
-  //       type: "map_entry",
-  //       key: { type: "raw_string", str: "|𿹧񲒓􊒞􈥍󴢑\n\t ", expanded: true },
-  //       assoc: { type: "assoc", str: "\t\n=" },
-  //       val: { type: "symbol", str: "false" },
-  //       expanded: true,
-  //     },
-  //     {
-  //       type: "map_entry",
-  //       key: { type: "number", str: "0.3270864677e-0" },
-  //       assoc: { type: "assoc", str: "  =" },
-  //       val: { type: "number", str: "59210689302.51621495432e-681" },
-  //       expanded: false,
-  //     },
-  //   ],
-  //   expanded: true,
-  //   top: true,
-  // };
   console.log(data);
   console.log(to_formatted_nodes(data));
   console.log(to_formatted_string(data));

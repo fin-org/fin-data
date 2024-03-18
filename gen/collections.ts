@@ -18,23 +18,32 @@ const { map } = fc.letrec((arb) => ({
   // values
   value: fc.oneof(
     { arbitrary: symbol, weight: 1 },
-    { arbitrary: number, weight: 1 },
-    { arbitrary: escaped_string, weight: 1 },
-    { arbitrary: raw_string, weight: 1 },
-    { arbitrary: boolean, weight: 1 },
-    { arbitrary: arb("array"), weight: 1 },
-    { arbitrary: arb("map"), weight: 1 },
+    // { arbitrary: number, weight: 1 },
+    // { arbitrary: escaped_string, weight: 1 },
+    // { arbitrary: raw_string, weight: 1 },
+    // { arbitrary: boolean, weight: 1 },
+    // { arbitrary: arb("array"), weight: 1 },
+    // { arbitrary: arb("map"), weight: 1 },
   ),
 
   // non-values
   non_value: fc.oneof(
     { arbitrary: comment, weight: 1 },
     { arbitrary: gap, weight: 3 },
+    // TODO discarded extensions
   ),
 
   // arrays
   tag: fc.oneof(
-    { arbitrary: symbol, weight: 1 },
+    {
+      arbitrary: symbol.filter(({ str }) => {
+        if (str.startsWith("fin:")) return false;
+        if (str.startsWith("ext:")) return false;
+        if (str === "true" || str === "false") return false;
+        return true;
+      }),
+      weight: 1,
+    },
     { arbitrary: fc.constant(null), weight: 3 },
   ),
   array_element: fc.oneof(
@@ -61,7 +70,7 @@ const { map } = fc.letrec((arb) => ({
     expanded: Boolean(key.expanded || val.expanded),
   })),
   map_element: fc.oneof(
-    // { arbitrary: arb("map_entry"), weight: 1 },
+    { arbitrary: arb("map_entry"), weight: 1 },
     { arbitrary: arb("non_value"), weight: 1 },
   ),
   map: fc.tuple(arb("tag"), fc.array(arb("map_element"))).map((
@@ -74,13 +83,13 @@ const { map } = fc.letrec((arb) => ({
   })),
 }));
 
-const top_level = map.map((m) => ({ ...m, top: true }));
+const top_level = map.map((m) => ({ ...m, tag: null, top: true }));
 
 const input = top_level.map(to_string);
 
 if (import.meta.main) {
   console.log("a sample of arrays...");
-  for (const s of fc.sample(top_level, 1)) {
+  for (const s of fc.sample(top_level, 5)) {
     console.log(s);
     console.log(to_string(s));
   }
