@@ -96,7 +96,7 @@ export function to_formatted_nodes(data: any) {
       }
 
       //
-    } else if (node.type === "comment") {
+    } else if (node.type === "comment" || node.type === "raw_string") {
       // --- COMMENTS ---
       const { parent } = node;
 
@@ -113,7 +113,7 @@ export function to_formatted_nodes(data: any) {
 
       // render the comment with correct indentation
       const comment: string = node.str.split("\n")
-        .filter((l: string) => l.includes("#"))
+        .filter((l: string) => l.includes(node.type === "comment" ? "#" : "|"))
         .map((l: string) => `${"\t".repeat(node.depth)}${l.trimStart()}`)
         .join("\n");
       node.str = comment + "\n";
@@ -126,9 +126,16 @@ export function to_formatted_nodes(data: any) {
       // ---
     } else if (node.type === "map_entry") {
       // --- MAP ENTRIES ---
-      const { parent } = node;
 
-      // TODO WIP. need wider range of inputs... perhaps hand crafted!
+      // setup key and val for rendering
+      const { parent, key, val } = node;
+      if (parent.type !== "map") throw new Error("bad parent type");
+      val.parent = node;
+      val.depth = node.depth;
+      key.parent = node;
+      key.depth = node.depth;
+
+      // TODO rewrite this
       if (parent.expanded) {
         const key_block = blocks.has(node.key.type);
         const val_block = blocks.has(node.val.type);
@@ -149,23 +156,29 @@ export function to_formatted_nodes(data: any) {
         }
         parent.midline = !val_block;
         parent.gap = undefined;
+        // TODO render key/val
       } else {
         if (parent.gap) output.push({ str: parent.gap });
         else parent.gap = ", ";
+        stack.push(node.val);
+        node.eq.str = " = ";
+        stack.push(node.eq);
+        stack.push(node.key);
       }
-      stack.push(node.val);
-      stack.push(node.eq);
-      stack.push(node.key);
 
       //
     } else if (node.type === "eq") {
-      delete node.parent;
-      node.str = "\t".repeat(node.depth) + "=";
       output.push(node);
     } else if (node.type === "symbol") {
+      // --- SYMBOL ---
+
       delete node.parent;
-      node.str = "\t".repeat(node.depth) + node.str;
+      if (node.indent) {
+        node.str = "\t".repeat(node.depth) + node.str;
+      }
       output.push(node);
+
+      //
     } else {
       throw node;
     }

@@ -1,5 +1,5 @@
 import { assertEquals } from "std/assert/mod.ts";
-import { to_formatted_string } from "./render.ts";
+import { to_formatted_string } from "./format.ts";
 
 Deno.test({
   name: "gaps and comments",
