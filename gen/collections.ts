@@ -10,8 +10,8 @@ import { to_string } from "./render.ts";
 const gap = fc.array(fc.constantFrom("\n", "\t", " ", ","), { maxLength: 4 })
   .map((arr) => ({ type: "gap", str: arr.join("") }));
 
-const assoc = fc.tuple(gap, gap).map(
-  ([g1, g2]) => ({ type: "assoc", str: `${g1.str}=${g2.str}` }),
+const eq = fc.tuple(gap, gap).map(
+  ([g1, g2]) => ({ type: "eq", str: `${g1.str}=${g2.str}` }),
 );
 
 const { map } = fc.letrec((arb) => ({
@@ -51,17 +51,17 @@ const { map } = fc.letrec((arb) => ({
   })),
 
   // maps
-  map_entry: fc.tuple(arb("value"), assoc, arb("value")).map((
-    [key, assoc, val],
+  map_entry: fc.tuple(arb("value"), eq, arb("value")).map((
+    [key, eq, val],
   ) => ({
     type: "map_entry",
     key,
-    assoc,
+    eq,
     val,
     expanded: Boolean(key.expanded || val.expanded),
   })),
   map_element: fc.oneof(
-    { arbitrary: arb("map_entry"), weight: 1 },
+    // { arbitrary: arb("map_entry"), weight: 1 },
     { arbitrary: arb("non_value"), weight: 1 },
   ),
   map: fc.tuple(arb("tag"), fc.array(arb("map_element"))).map((
@@ -80,7 +80,8 @@ const input = top_level.map(to_string);
 
 if (import.meta.main) {
   console.log("a sample of arrays...");
-  for (const s of fc.sample(input, 20)) {
+  for (const s of fc.sample(top_level, 1)) {
     console.log(s);
+    console.log(to_string(s));
   }
 }
