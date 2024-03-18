@@ -15,14 +15,8 @@ function requires_newline(a: any, b: any) {
   return false;
 }
 
-// push elements onto stack and record parent/depth info
-function push_all(stack: any[], parent: any, ...elements: any[]) {
-  elements.reduceRight((st: any[], el: any) => {
-    el.parent = parent;
-    el.depth = (parent.depth ?? -1) + 1;
-    st.push(el);
-    return st;
-  }, stack);
+function push(stack: any[], el: any) {
+  stack.push(el);
   return stack;
 }
 
@@ -32,11 +26,10 @@ export function to_string(data: any) {
   while (stack.length > 0) {
     const node = stack.pop();
     if (node.top) {
-      push_all(stack, node, ...node.elements);
+      node.elements.reduceRight(push, stack);
     } else if (node.type === "map") {
       stack.push({ str: ")" });
-      push_all(stack, node, node.elements);
-      push_all(stack, node, ...node.elements);
+      node.elements.reduceRight(push, stack);
       stack.push({ str: "(" });
       if (node.tag) stack.push(node.tag);
     } else if (node.type === "map_entry") {
@@ -45,7 +38,7 @@ export function to_string(data: any) {
       stack.push(node.key);
     } else if (node.type === "array") {
       stack.push({ str: "]" });
-      push_all(stack, node, ...node.elements);
+      node.elements.reduceRight(push, stack);
       stack.push({ str: "[" });
       if (node.tag) stack.push(node.tag);
     } else if (node.str !== undefined) {
@@ -71,7 +64,12 @@ export function to_formatted_nodes(data: any) {
   while (stack.length > 0) {
     const node = stack.pop();
     if (node.top) {
-      push_all(stack, node, ...node.elements);
+      node.elements.reduceRight((st: any[], el: any) => {
+        st.push(el);
+        el.parent = node;
+        el.depth = 0;
+        return st;
+      }, stack);
     } else if (node.type === "gap") {
       // --- GAPS ---
       const { parent } = node;
@@ -97,7 +95,7 @@ export function to_formatted_nodes(data: any) {
 
       //
     } else if (node.type === "comment" || node.type === "raw_string") {
-      // --- COMMENTS ---
+      // --- COMMENTS & RAW STRINGS ---
       const { parent } = node;
 
       // check parent is expanded
@@ -127,7 +125,7 @@ export function to_formatted_nodes(data: any) {
     } else if (node.type === "map_entry") {
       // --- MAP ENTRIES ---
 
-      // setup key and val for rendering
+      // set parent and depth for key/val nodes.
       const { parent, key, val } = node;
       if (parent.type !== "map") throw new Error("bad parent type");
       val.parent = node;
@@ -135,42 +133,48 @@ export function to_formatted_nodes(data: any) {
       key.parent = node;
       key.depth = node.depth;
 
-      // TODO rewrite this
       if (parent.expanded) {
         const key_block = blocks.has(node.key.type);
         const val_block = blocks.has(node.val.type);
+        //
+
         if (parent.midline) {
-          // render the correct gap
           if (!key_block && parent.gap === ",") {
             output.push({ str: ", " });
           } else {
             output.push({
               str: parent.gap?.startsWith("\n") ? parent.gap : "\n",
             });
+            key.indent = true;
           }
         } else {
           if (parent.gap) output.push({ str: parent.gap });
-          node.key.depth = parent.depth; // indent the key on a new line
-          if (key_block) node.eq = parent.depth; // indent the eq
-          if (val_block) node.val = parent.depth; // indent the val
+          key.indent = true;
         }
         parent.midline = !val_block;
         parent.gap = undefined;
-        // TODO render key/val
+
+        // render key/val
+        stack.push(val);
+        node.eq.str = (key_block ? "\t".repeat(node.depth) : " ") +
+          node.eq.str + (val_block ? "\n" : " ");
+        stack.push(node.eq);
+        stack.push(key);
       } else {
-        if (parent.gap) output.push({ str: parent.gap });
-        else parent.gap = ", ";
-        stack.push(node.val);
+        stack.push(val);
         node.eq.str = " = ";
         stack.push(node.eq);
-        stack.push(node.key);
+        stack.push(key);
       }
 
       //
     } else if (node.type === "eq") {
       output.push(node);
-    } else if (node.type === "symbol") {
-      // --- SYMBOL ---
+    } else if (
+      node.type === "symbol" || node.type === "number" ||
+      node.type === "escaped_string"
+    ) {
+      // --- SYMBOLS, NUMBERS & ESCAPED STRINGS ---
 
       delete node.parent;
       if (node.indent) {

@@ -104,7 +104,6 @@ Deno.test({
 
 Deno.test({
   name: "map_entries - block vals",
-  ignore: true,
   fn: () => {
     const data = {
       type: "map",
@@ -141,7 +140,6 @@ Deno.test({
 
 Deno.test({
   name: "map_entries - block keys",
-  ignore: true,
   fn: () => {
     const data = {
       type: "map",
