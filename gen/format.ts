@@ -136,7 +136,6 @@ export function to_formatted_nodes(data: any) {
       if (parent.expanded) {
         const key_block = blocks.has(node.key.type);
         const val_block = blocks.has(node.val.type);
-        //
 
         if (parent.midline) {
           if (!key_block && parent.gap === ",") {
@@ -157,7 +156,7 @@ export function to_formatted_nodes(data: any) {
         // render key/val
         stack.push(val);
         node.eq.str = (key_block ? "\t".repeat(node.depth) : " ") +
-          node.eq.str + (val_block ? "\n" : " ");
+          "=" + (val_block ? "\n" : " ");
         stack.push(node.eq);
         stack.push(key);
       } else {

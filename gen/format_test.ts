@@ -123,17 +123,19 @@ Deno.test({
           key: { type: "symbol", str: "c" },
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|d\n" },
+          expanded: true,
         },
-        { type: "gap", str: "\t, \n" },
+        { type: "gap", str: "\t, \n\n" },
         {
           type: "map_entry",
           key: { type: "symbol", str: "e" },
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|f\n" },
+          expanded: true,
         },
       ],
     };
-    const res = "a = b, c =\n|d\ne = f\n";
+    const res = "a = b, c =\n|d\n\ne =\n|f\n";
     assertEquals(to_formatted_string(data), res);
   },
 });
@@ -158,14 +160,16 @@ Deno.test({
           type: "map_entry",
           key: { type: "raw_string", str: "|c\n" },
           eq: { type: "eq", str: "=" },
-          val: { type: "raw_symbol", str: "d" },
+          val: { type: "symbol", str: "d" },
+          expanded: true,
         },
         { type: "gap", str: "\t, \n\n," },
         {
           type: "map_entry",
           key: { type: "raw_string", str: "|e\n" },
           eq: { type: "eq", str: "=" },
-          val: { type: "raw_symbol", str: "f" },
+          val: { type: "symbol", str: "f" },
+          expanded: true,
         },
       ],
     };
@@ -176,16 +180,40 @@ Deno.test({
 
 Deno.test({
   name: "map_entries - block keys & vals",
-  ignore: true,
   fn: () => {
     const data = {
       type: "map",
       tag: null,
       expanded: true,
       top: true,
-      elements: [],
+      elements: [
+        { type: "gap", str: " ,\t" },
+        {
+          type: "map_entry",
+          key: { type: "raw_string", str: "|a\n" },
+          eq: { type: "eq", str: "=" },
+          val: { type: "raw_string", str: "|b\n" },
+          expanded: true,
+        },
+        { type: "gap", str: "\t,\n\t" },
+        {
+          type: "map_entry",
+          key: { type: "raw_string", str: "|c\n" },
+          eq: { type: "eq", str: "=" },
+          val: { type: "raw_string", str: "|d\n" },
+          expanded: true,
+        },
+        { type: "gap", str: "\t, " },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "e" },
+          eq: { type: "eq", str: "=" },
+          val: { type: "raw_string", str: "|f\n" },
+          expanded: true,
+        },
+      ],
     };
-    const res = "TODO";
+    const res = "|a\n=\n|b\n\n|c\n=\n|d\ne =\n|f\n";
     assertEquals(to_formatted_string(data), res);
   },
 });

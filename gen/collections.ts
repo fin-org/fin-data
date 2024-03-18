@@ -5,7 +5,7 @@ import { escaped_string } from "./escaped_strings.ts";
 import { raw_string } from "./raw_strings.ts";
 import { comment } from "./comments.ts";
 import { boolean } from "./extensions.ts";
-import { to_string } from "./render.ts";
+import { to_string } from "./format.ts";
 
 const gap = fc.array(fc.constantFrom("\n", "\t", " ", ","), { maxLength: 4 })
   .map((arr) => ({ type: "gap", str: arr.join("") }));
