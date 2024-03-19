@@ -181,6 +181,7 @@ export function to_formatted_nodes(data: any) {
       if (parent.type === "array" && parent.expanded && !node.tag) {
         if (parent.gap !== undefined) {
           output.push({ str: parent.gap === "," ? ", " : parent.gap });
+          parent.midline = !parent.gap.includes("\n");
           parent.gap = undefined;
         } else if (parent.midline) {
           output.push({ str: ", " });
@@ -206,6 +207,7 @@ export function to_formatted_nodes(data: any) {
         if (parent.gap !== undefined) {
           if (!parent.expanded) throw new Error("gaps have not been stripped");
           output.push({ str: parent.gap === "," ? ", " : parent.gap });
+          parent.midline = !parent.gap.includes("\n");
           parent.gap = undefined;
         } else if (parent.midline) {
           output.push({ str: ", " });

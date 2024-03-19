@@ -571,3 +571,36 @@ Deno.test({
     assertEquals(to_formatted_string(data), res);
   },
 });
+
+Deno.test({
+  name: "case 3",
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "a" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "array",
+            tag: { type: "symbol", str: "i" },
+            expanded: true,
+            elements: [
+              { type: "escaped_string", str: "98" },
+              { type: "gap", str: "\n" },
+              { type: "symbol", str: "z4" },
+              { type: "comment", str: "#\n" },
+            ],
+          },
+          expanded: true,
+        },
+      ],
+    };
+    const res = "a = i[\n\t98\n\tz4\n\t#\n]\n";
+    assertEquals(to_formatted_string(data), res);
+  },
+});
