@@ -415,3 +415,87 @@ Deno.test({
     assertEquals(to_formatted_string(data), res);
   },
 });
+
+Deno.test({
+  name: "inline arrays",
+  only: true,
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [
+        { type: "gap", str: " ,\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "a" },
+          eq: { type: "eq", str: ",\t\t=" },
+          val: {
+            type: "array",
+            tag: null,
+            expanded: false,
+            elements: [],
+          },
+          expanded: false,
+        },
+        { type: "gap", str: " ,\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "b" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "array",
+            tag: { type: "symbol", str: "sym" },
+            expanded: false,
+            elements: [
+              { type: "gap", str: "\n, " },
+              { type: "number", str: "1" },
+              { type: "gap", str: "\n, " },
+            ],
+          },
+          expanded: false,
+        },
+        { type: "gap", str: " \n\t\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "c" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "array",
+            tag: null,
+            expanded: false,
+            elements: [
+              { type: "number", str: "1" },
+              { type: "gap", str: " \t " },
+              { type: "number", str: "2" },
+              { type: "gap", str: "," },
+              { type: "number", str: "3" },
+              { type: "gap", str: "\n\t" },
+              { type: "number", str: "4" },
+              { type: "gap", str: "\n\n\n  \t, " },
+            ],
+          },
+        },
+      ],
+    };
+    const res = "\na = [], b = sym[1]\n\nc = [1, 2, 3, 4]\n";
+    assertEquals(to_formatted_string(data), res);
+  },
+});
+
+Deno.test({
+  name: "expanded arrays",
+  ignore: true,
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [],
+    };
+    const res = "TODO";
+    assertEquals(to_formatted_string(data), res);
+  },
+});

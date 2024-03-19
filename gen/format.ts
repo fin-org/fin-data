@@ -183,15 +183,19 @@ export function to_formatted_nodes(data: any) {
       output.push(node);
 
       //
-    } else if (node.type === "map") {
-      // --- MAPS ---
+    } else if (node.type === "map" || node.type === "array") {
+      // --- MAPS && ARRAYS ---
 
       if (!node.expanded) {
         // remove gaps
         node.elements = node.elements.filter((el: any) => el.type !== "gap");
       }
 
-      stack.push({ type: "close", str: ")", parent: node });
+      stack.push({
+        type: "close",
+        str: node.type === "map" ? ")" : "]",
+        parent: node,
+      });
       node.elements.reduceRight((st: any[], el: any, i: number) => {
         st.push(el);
         el.parent = node;
@@ -201,12 +205,18 @@ export function to_formatted_nodes(data: any) {
         }
         return st;
       }, stack);
-      stack.push({ type: "open", str: "(", parent: node });
+      stack.push({
+        type: "open",
+        str: node.type === "map" ? "(" : "[",
+        parent: node,
+      });
       if (node.tag) {
         node.tag.indent = node.indent;
         node.tag.depth = node.depth;
         stack.push(node.tag);
       }
+
+      //
     } else if (node.type === "open") {
       if (node.parent.tag === null && node.parent.indent) {
         node.str = "\t".repeat(node.parent.depth) + node.str;
@@ -248,28 +258,7 @@ if (import.meta.main) {
     tag: null,
     expanded: true,
     top: true,
-    elements: [
-      {
-        type: "map_entry",
-        key: { type: "symbol", str: "a" },
-        eq: { type: "eq", str: "=" },
-        val: { type: "symbol", str: "b" },
-      },
-      { type: "gap", str: " , " },
-      {
-        type: "map_entry",
-        key: { type: "symbol", str: "c" },
-        eq: { type: "eq", str: "=" },
-        val: { type: "symbol", str: "d" },
-      },
-      { type: "gap", str: "\n, " },
-      {
-        type: "map_entry",
-        key: { type: "symbol", str: "e" },
-        eq: { type: "eq", str: "=" },
-        val: { type: "symbol", str: "f" },
-      },
-    ],
+    elements: [],
   };
 
   console.log(data);

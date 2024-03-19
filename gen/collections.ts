@@ -22,7 +22,7 @@ const { map } = fc.letrec((arb) => ({
     { arbitrary: escaped_string, weight: 1 },
     { arbitrary: raw_string, weight: 1 },
     { arbitrary: boolean, weight: 1 },
-    // { arbitrary: arb("array"), weight: 1 },
+    { arbitrary: arb("array"), weight: 1 },
     { arbitrary: arb("map"), weight: 1 },
   ),
 
