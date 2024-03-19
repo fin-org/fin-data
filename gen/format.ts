@@ -175,16 +175,44 @@ export function to_formatted_nodes(data: any) {
       node.type === "escaped_string"
     ) {
       // --- SYMBOLS, NUMBERS & ESCAPED STRINGS ---
+      const { parent } = node;
 
-      delete node.parent;
-      if (node.indent) {
+      // if an array element render gap
+      if (parent.type === "array" && parent.expanded && !node.tag) {
+        if (parent.gap !== undefined) {
+          output.push({ str: parent.gap === "," ? ", " : parent.gap });
+          parent.gap = undefined;
+        } else if (parent.midline) {
+          output.push({ str: ", " });
+        }
+        if (!parent.midline) {
+          node.str = "\t".repeat(node.depth) + node.str;
+        }
+        parent.midline = true;
+      } else if (node.indent) {
         node.str = "\t".repeat(node.depth) + node.str;
       }
+
+      delete node.parent;
       output.push(node);
 
       //
     } else if (node.type === "map" || node.type === "array") {
       // --- MAPS && ARRAYS ---
+      const { parent } = node;
+
+      // if an array element render gap
+      if (parent.type === "array") {
+        if (parent.gap !== undefined) {
+          if (!parent.expanded) throw new Error("gaps have not been stripped");
+          output.push({ str: parent.gap === "," ? ", " : parent.gap });
+          parent.gap = undefined;
+        } else if (parent.midline) {
+          output.push({ str: ", " });
+        }
+        if (!parent.midline) node.indent = true;
+        parent.midline = true;
+      }
 
       if (!node.expanded) {
         // remove gaps
@@ -213,6 +241,8 @@ export function to_formatted_nodes(data: any) {
       if (node.tag) {
         node.tag.indent = node.indent;
         node.tag.depth = node.depth;
+        node.tag.parent = node;
+        node.tag.tag = true;
         stack.push(node.tag);
       }
 

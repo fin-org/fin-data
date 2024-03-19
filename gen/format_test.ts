@@ -418,7 +418,6 @@ Deno.test({
 
 Deno.test({
   name: "inline arrays",
-  only: true,
   fn: () => {
     const data = {
       type: "map",
@@ -486,16 +485,89 @@ Deno.test({
 
 Deno.test({
   name: "expanded arrays",
-  ignore: true,
   fn: () => {
     const data = {
       type: "map",
       tag: null,
       expanded: true,
       top: true,
-      elements: [],
+      elements: [
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "a" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "array",
+            tag: null,
+            expanded: true,
+            elements: [
+              { type: "gap", str: " \n, \t" },
+              { type: "number", str: "98" },
+              { type: "gap", str: ", \n\t\n " },
+
+              {
+                type: "array",
+                tag: { type: "symbol", str: "b" },
+                expanded: true,
+                elements: [
+                  { type: "gap", str: ",, " },
+                  { type: "comment", str: "#\n" },
+                  { type: "gap", str: " \t, " },
+                  { type: "symbol", str: "c" },
+                  { type: "gap", str: " , " },
+                ],
+              },
+              { type: "gap", str: "\n\n" },
+            ],
+          },
+          expanded: true,
+        },
+      ],
     };
-    const res = "TODO";
+    const res = "a = [\n\n\t98, b[\n\t\t#\n\t\tc\n\t]\n\n]\n";
+    assertEquals(to_formatted_string(data), res);
+  },
+});
+
+Deno.test({
+  name: "case 2",
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "a" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "array",
+            tag: null,
+            expanded: true,
+            elements: [
+              { type: "comment", str: "#\n" },
+              {
+                type: "array",
+                tag: { type: "symbol", str: "b" },
+                expanded: false,
+                elements: [],
+              },
+              {
+                type: "map",
+                tag: null,
+                expanded: false,
+                elements: [],
+              },
+              { type: "number", str: "98" },
+            ],
+          },
+          expanded: true,
+        },
+      ],
+    };
+    const res = "a = [\n\t#\n\tb[], (), 98\n]\n";
     assertEquals(to_formatted_string(data), res);
   },
 });

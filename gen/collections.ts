@@ -7,7 +7,9 @@ import { comment } from "./comments.ts";
 import { boolean } from "./extensions.ts";
 import { to_formatted_string, to_string } from "./format.ts";
 
-const gap = fc.array(fc.constantFrom("\n", "\t", " ", ","), { maxLength: 4 })
+const gap = fc.array(fc.constantFrom("\n", "\t", " ", ",", ","), {
+  maxLength: 4,
+})
   .map((arr) => ({ type: "gap", str: arr.join("") }));
 
 const eq = fc.tuple(gap, gap).map(
@@ -80,7 +82,14 @@ const { map } = fc.letrec((arb) => ({
     tag,
     elements,
     expanded: elements.some((e) => e.expanded),
-  })),
+  })).filter(({ elements }) => {
+    const consecutive_raw_string = elements.some((el, i, arr) => {
+      if (i === 0) return false;
+      const prev = arr[i - 1];
+      return prev?.val?.type === "raw_string" && el?.key?.type === "raw_string";
+    });
+    return !consecutive_raw_string;
+  }),
 }));
 
 const top_level = map.map((m) => ({ ...m, tag: null, top: true }));
