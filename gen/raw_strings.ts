@@ -15,6 +15,7 @@ const indent = fc.stringOf(fc.constantFrom("\t", " "), { maxLength: 6 });
 export function raw_block(type: string, start: string) {
   return fc.array(fc.tuple(line(start), indent), {
     minLength: 1,
+    maxLength: 3,
   }).map((lines) => ({
     type,
     str: lines.map((p) => p.join("")).join(""),

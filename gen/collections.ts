@@ -5,7 +5,7 @@ import { escaped_string } from "./escaped_strings.ts";
 import { raw_string } from "./raw_strings.ts";
 import { comment } from "./comments.ts";
 import { boolean } from "./extensions.ts";
-import { to_string } from "./format.ts";
+import { to_formatted_string, to_string } from "./format.ts";
 
 const gap = fc.array(fc.constantFrom("\n", "\t", " ", ","), { maxLength: 4 })
   .map((arr) => ({ type: "gap", str: arr.join("") }));
@@ -18,12 +18,12 @@ const { map } = fc.letrec((arb) => ({
   // values
   value: fc.oneof(
     { arbitrary: symbol, weight: 1 },
-    // { arbitrary: number, weight: 1 },
-    // { arbitrary: escaped_string, weight: 1 },
-    // { arbitrary: raw_string, weight: 1 },
-    // { arbitrary: boolean, weight: 1 },
+    { arbitrary: number, weight: 1 },
+    { arbitrary: escaped_string, weight: 1 },
+    { arbitrary: raw_string, weight: 1 },
+    { arbitrary: boolean, weight: 1 },
     // { arbitrary: arb("array"), weight: 1 },
-    // { arbitrary: arb("map"), weight: 1 },
+    { arbitrary: arb("map"), weight: 1 },
   ),
 
   // non-values
@@ -89,8 +89,11 @@ const input = top_level.map(to_string);
 
 if (import.meta.main) {
   console.log("a sample of arrays...");
-  for (const s of fc.sample(top_level, 5)) {
+  for (const s of fc.sample(top_level, 1)) {
     console.log(s);
+    console.log();
     console.log(to_string(s));
+    console.log();
+    console.log(to_formatted_string(s));
   }
 }

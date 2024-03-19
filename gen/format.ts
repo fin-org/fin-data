@@ -186,13 +186,17 @@ export function to_formatted_nodes(data: any) {
     } else if (node.type === "map") {
       // --- MAPS ---
 
+      if (!node.expanded) {
+        // remove gaps
+        node.elements = node.elements.filter((el: any) => el.type !== "gap");
+      }
+
       stack.push({ type: "close", str: ")", parent: node });
       node.elements.reduceRight((st: any[], el: any, i: number) => {
         st.push(el);
         el.parent = node;
         el.depth = node.depth + 1;
-        // inline maps
-        if (i > 0 && !node.expanded && el.type !== "gap") {
+        if (i > 0 && !node.expanded) {
           st.push({ type: "raw", str: ", " });
         }
         return st;
@@ -200,6 +204,7 @@ export function to_formatted_nodes(data: any) {
       stack.push({ type: "open", str: "(", parent: node });
       if (node.tag) {
         node.tag.indent = node.indent;
+        node.tag.depth = node.depth;
         stack.push(node.tag);
       }
     } else if (node.type === "open") {
@@ -209,9 +214,13 @@ export function to_formatted_nodes(data: any) {
       if (node.parent.expanded) node.str += "\n";
       output.push(node);
     } else if (node.type === "close") {
-      if (node.parent.midline) node.str = "\n" + node.str;
       if (node.parent.expanded) {
+        if (node.parent.gap?.startsWith("\n")) {
+          output.push({ str: node.parent.gap });
+          node.parent.midline = undefined;
+        }
         node.str = "\t".repeat(node.parent.depth) + node.str;
+        if (node.parent.midline) node.str = "\n" + node.str;
       }
       output.push(node);
     } else if (node.type === "raw") {
@@ -222,7 +231,9 @@ export function to_formatted_nodes(data: any) {
   }
 
   // final newline
-  if (!output.at(-1).str.endsWith("\n")) output.push({ str: "\n" });
+  if (output.length > 0 && !output.at(-1).str.endsWith("\n")) {
+    output.push({ str: "\n" });
+  }
 
   return output;
 }

@@ -231,7 +231,7 @@ Deno.test({
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
+          eq: { type: "eq", str: ",\t\t=" },
           val: {
             type: "map",
             tag: null,
@@ -343,6 +343,26 @@ Deno.test({
                   expanded: true,
                   elements: [
                     { type: "comment", str: "#\n\t", expanded: true },
+                    {
+                      type: "map_entry",
+                      key: { type: "number", str: "1" },
+                      eq: { type: "eq", str: "=" },
+                      val: { type: "number", str: "2" },
+                      expanded: false,
+                    },
+                    {
+                      type: "map_entry",
+                      key: {
+                        type: "map",
+                        tag: { type: "symbol", str: "_" },
+                        elements: [],
+                        expanded: false,
+                      },
+                      eq: { type: "eq", str: "=" },
+                      val: { type: "number", str: "3" },
+                      expanded: false,
+                    },
+                    { type: "gap", str: "\n\n" },
                   ],
                 },
                 expanded: true,
@@ -353,7 +373,45 @@ Deno.test({
         },
       ],
     };
-    const res = "a = (\n\t#\n\tb = tag(\n\t\t#\n\t)\n)\n";
+    const res =
+      "a = (\n\t#\n\tb = tag(\n\t\t#\n\t\t1 = 2\n\t\t_() = 3\n\n\t)\n)\n";
+    assertEquals(to_formatted_string(data), res);
+  },
+});
+
+Deno.test({
+  name: "case 1",
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [
+        {
+          type: "map_entry",
+          key: { type: "raw_string", str: "|a\n" },
+          eq: { type: "eq", str: "\n\n=\n," },
+          val: {
+            type: "map",
+            tag: null,
+            expanded: false,
+            elements: [
+              { type: "gap", str: " " },
+              {
+                type: "map_entry",
+                key: { type: "number", str: "-7" },
+                eq: { type: "eq", str: "\n ,,=,  , " },
+                val: { type: "number", str: "-0.8" },
+              },
+            ],
+          },
+          expanded: true,
+        },
+        { type: "gap", str: "\n\n" },
+      ],
+    };
+    const res = "|a\n= (-7 = -0.8)\n";
     assertEquals(to_formatted_string(data), res);
   },
 });
