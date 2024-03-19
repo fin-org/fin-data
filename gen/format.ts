@@ -63,6 +63,7 @@ export function to_formatted_nodes(data: any) {
   const output = [];
   while (stack.length > 0) {
     const node = stack.pop();
+    // console.log("rendering", node.type);
     if (node.top) {
       node.elements.reduceRight((st: any[], el: any) => {
         st.push(el);
@@ -182,6 +183,36 @@ export function to_formatted_nodes(data: any) {
       output.push(node);
 
       //
+    } else if (node.type === "map") {
+      // --- MAPS ---
+
+      let open = "(";
+      let close = ")";
+      if (node.expanded) {
+        open = open + "\n";
+        close = "\t".repeat(node.depth) + "\n" + close;
+      }
+      if (node.indent) {
+        open = "\t".repeat(node.depth) + open;
+      }
+
+      stack.push({ type: "raw", str: close });
+
+      node.elements.reduceRight((st: any[], el: any, i: number) => {
+        st.push(el);
+        el.parent = node;
+        el.depth = node.depth + 1;
+        // inline maps
+        if (i > 0 && !node.expanded && el.type !== "gap") {
+          st.push({ type: "raw", str: ", " });
+        }
+        return st;
+      }, stack);
+      stack.push({ type: "raw", str: open });
+
+      //
+    } else if (node.type === "raw") {
+      output.push(node);
     } else {
       throw node;
     }

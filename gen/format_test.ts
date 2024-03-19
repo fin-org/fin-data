@@ -217,3 +217,128 @@ Deno.test({
     assertEquals(to_formatted_string(data), res);
   },
 });
+
+Deno.test({
+  name: "inline maps",
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [
+        { type: "gap", str: " ,\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "a" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "map",
+            tag: null,
+            expanded: false,
+            elements: [],
+          },
+          expanded: false,
+        },
+        { type: "gap", str: " ,\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "b" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "map",
+            tag: null,
+            expanded: false,
+            elements: [
+              {
+                type: "map_entry",
+                key: { type: "number", str: "1" },
+                eq: { type: "eq", str: "=" },
+                val: { type: "number", str: "2" },
+                expanded: false,
+              },
+            ],
+          },
+          expanded: false,
+        },
+        { type: "gap", str: " \n\t\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "c" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "map",
+            tag: null,
+            expanded: false,
+            elements: [
+              {
+                type: "map_entry",
+                key: { type: "number", str: "1" },
+                eq: { type: "eq", str: "=" },
+                val: { type: "number", str: "2" },
+                expanded: false,
+              },
+              { type: "gap", str: " \t " },
+              {
+                type: "map_entry",
+                key: { type: "number", str: "3" },
+                eq: { type: "eq", str: "=" },
+                val: { type: "number", str: "4" },
+                expanded: false,
+              },
+              { type: "gap", str: "," },
+              {
+                type: "map_entry",
+                key: { type: "number", str: "5" },
+                eq: { type: "eq", str: "=" },
+                val: { type: "number", str: "6" },
+                expanded: false,
+              },
+              { type: "gap", str: "\n\t" },
+              {
+                type: "map_entry",
+                key: { type: "number", str: "7" },
+                eq: { type: "eq", str: "=" },
+                val: { type: "number", str: "8" },
+                expanded: false,
+              },
+              { type: "gap", str: "\n\n\n  \t, " },
+            ],
+          },
+        },
+      ],
+    };
+    const res = "\na = (), b = (1 = 2)\n\nc = (1 = 2, 3 = 4, 5 = 6, 7 = 8)\n";
+    assertEquals(to_formatted_string(data), res);
+  },
+});
+
+Deno.test({
+  name: "expanded maps",
+  ignore: true,
+  fn: () => {
+    const data = {
+      type: "map",
+      tag: null,
+      expanded: true,
+      top: true,
+      elements: [
+        { type: "gap", str: " ,\n" },
+        {
+          type: "map_entry",
+          key: { type: "symbol", str: "a" },
+          eq: { type: "eq", str: "=" },
+          val: {
+            type: "map",
+            tag: null,
+            expanded: false,
+            elements: [],
+          },
+          expanded: false,
+        },
+      ],
+    };
+    const res = "TODO";
+    assertEquals(to_formatted_string(data), res);
+  },
+});
