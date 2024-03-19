@@ -247,7 +247,7 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: {
             type: "map",
-            tag: null,
+            tag: { type: "symbol", str: "sym" },
             expanded: false,
             elements: [
               {
@@ -308,7 +308,8 @@ Deno.test({
         },
       ],
     };
-    const res = "\na = (), b = (1 = 2)\n\nc = (1 = 2, 3 = 4, 5 = 6, 7 = 8)\n";
+    const res =
+      "\na = (), b = sym(1 = 2)\n\nc = (1 = 2, 3 = 4, 5 = 6, 7 = 8)\n";
     assertEquals(to_formatted_string(data), res);
   },
 });

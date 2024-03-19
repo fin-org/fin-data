@@ -186,18 +186,7 @@ export function to_formatted_nodes(data: any) {
     } else if (node.type === "map") {
       // --- MAPS ---
 
-      let open = "(";
-      let close = ")";
-      if (node.expanded) {
-        open = open + "\n";
-        close = "\t".repeat(node.depth) + "\n" + close;
-      }
-      if (node.indent) {
-        open = "\t".repeat(node.depth) + open;
-      }
-
-      stack.push({ type: "raw", str: close });
-
+      stack.push({ type: "close", str: ")", parent: node });
       node.elements.reduceRight((st: any[], el: any, i: number) => {
         st.push(el);
         el.parent = node;
@@ -208,9 +197,22 @@ export function to_formatted_nodes(data: any) {
         }
         return st;
       }, stack);
-      stack.push({ type: "raw", str: open });
-
-      //
+      stack.push({ type: "open", str: "(", parent: node });
+      if (node.tag) {
+        node.tag.indent = node.indent;
+        stack.push(node.tag);
+      }
+    } else if (node.type === "open") {
+      if (node.parent.tag === null && node.parent.indent) {
+        node.str = "\t".repeat(node.parent.depth) + node.str;
+      }
+      if (node.parent.expanded) node.str += "\n";
+      output.push(node);
+    } else if (node.type === "close") {
+      if (node.parent.expanded) {
+        node.str = "\n" + "\t".repeat(node.parent.depth) + node.str;
+      }
+      output.push(node);
     } else if (node.type === "raw") {
       output.push(node);
     } else {
