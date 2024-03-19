@@ -209,8 +209,9 @@ export function to_formatted_nodes(data: any) {
       if (node.parent.expanded) node.str += "\n";
       output.push(node);
     } else if (node.type === "close") {
+      if (node.parent.midline) node.str = "\n" + node.str;
       if (node.parent.expanded) {
-        node.str = "\n" + "\t".repeat(node.parent.depth) + node.str;
+        node.str = "\t".repeat(node.parent.depth) + node.str;
       }
       output.push(node);
     } else if (node.type === "raw") {
@@ -229,8 +230,6 @@ export function to_formatted_nodes(data: any) {
 export function to_formatted_string(data: any) {
   return to_formatted_nodes(data).map((n) => n.str).join("");
 }
-
-// gap that has a comma always formats to ", "?
 
 if (import.meta.main) {
   const data = {

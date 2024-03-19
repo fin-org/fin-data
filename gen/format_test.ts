@@ -316,7 +316,6 @@ Deno.test({
 
 Deno.test({
   name: "expanded maps",
-  ignore: true,
   fn: () => {
     const data = {
       type: "map",
@@ -324,7 +323,6 @@ Deno.test({
       expanded: true,
       top: true,
       elements: [
-        { type: "gap", str: " ,\n" },
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
@@ -332,14 +330,30 @@ Deno.test({
           val: {
             type: "map",
             tag: null,
-            expanded: false,
-            elements: [],
+            expanded: true,
+            elements: [
+              { type: "comment", str: "#\n\t", expanded: true },
+              {
+                type: "map_entry",
+                key: { type: "symbol", str: "b" },
+                eq: { type: "eq", str: "=" },
+                val: {
+                  type: "map",
+                  tag: { type: "symbol", str: "tag" },
+                  expanded: true,
+                  elements: [
+                    { type: "comment", str: "#\n\t", expanded: true },
+                  ],
+                },
+                expanded: true,
+              },
+            ],
           },
-          expanded: false,
+          expanded: true,
         },
       ],
     };
-    const res = "TODO";
+    const res = "a = (\n\t#\n\tb = tag(\n\t\t#\n\t)\n)\n";
     assertEquals(to_formatted_string(data), res);
   },
 });
