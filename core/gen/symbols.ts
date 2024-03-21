@@ -5,10 +5,3 @@ export const symbol = fc.stringMatching(/^[a-z_:][a-z_:\d]*$/)
   .filter((s) => !s.endsWith(":"))
   .filter((s) => !/:\d/.test(s))
   .map((str) => ({ type: "symbol", str }));
-
-if (import.meta.main) {
-  console.log("a sample of symbols...");
-  for (const s of fc.sample(symbol, 20)) {
-    console.log(s);
-  }
-}
