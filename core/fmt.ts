@@ -1,53 +1,55 @@
-// deno-lint-ignore-file no-explicit-any
-// TODO types. validate generated data. can zod generate types?
+import * as ast from "./ast.ts";
 
-function requires_space(a: any, b: any) {
-  if (a?.type === "symbol" && b?.type === "symbol") return true;
-  if (a?.type === "symbol" && b?.type === "number") return true;
-  if (a?.type === "number" && b?.type === "symbol") return true;
-  if (a?.type === "number" && b?.type === "number") return true;
+function requires_space(a?: ast.Output, b?: ast.Output) {
+  if (a === undefined || b === undefined) return false;
+  if (a.type === "symbol" && b.type === "symbol") return true;
+  if (a.type === "symbol" && b.type === "number") return true;
+  if (a.type === "number" && b.type === "symbol") return true;
+  if (a.type === "number" && b.type === "number") return true;
   return false;
 }
 
-function requires_newline(a: any, b: any) {
-  if (a?.type === "raw_string" && b?.type === "raw_string") return true;
-  if (a?.type === "comment" && b?.type === "comment") return true;
+function requires_newline(a?: ast.Output, b?: ast.Output) {
+  if (a === undefined || b === undefined) return false;
+  if (a.type === "raw_string" && b.type === "raw_string") return true;
+  if (a.type === "comment" && b.type === "comment") return true;
   return false;
 }
 
-function push(stack: any[], el: any) {
+function push(stack: ast.Node[], el: ast.Node) {
   stack.push(el);
   return stack;
 }
 
-// TODO move to ast.
-export function to_string(data: any) {
-  const stack = [data];
-  const output = [];
+export function to_string(node: ast.Node) {
+  const stack: ast.Node[] = [node];
+  const output: ast.Output[] = [];
   while (stack.length > 0) {
     const node = stack.pop();
-    if (node.top) {
+    if (node === undefined) break;
+
+    if (node.type === "top_level") {
       node.elements.reduceRight(push, stack);
     } else if (node.type === "map") {
-      stack.push({ str: ")" });
+      stack.push({ type: "close", str: ")" });
       node.elements.reduceRight(push, stack);
-      stack.push({ str: "(" });
+      stack.push({ type: "open", str: "(" });
       if (node.tag) stack.push(node.tag);
     } else if (node.type === "map_entry") {
       stack.push(node.val);
       stack.push(node.eq);
       stack.push(node.key);
     } else if (node.type === "array") {
-      stack.push({ str: "]" });
+      stack.push({ type: "close", str: "]" });
       node.elements.reduceRight(push, stack);
-      stack.push({ str: "[" });
+      stack.push({ type: "open", str: "[" });
       if (node.tag) stack.push(node.tag);
     } else if (node.str !== undefined) {
       if (requires_space(node, output.at(-1))) {
-        output.push({ type: "space", str: " " });
+        output.push({ type: "raw", str: " " });
       }
       if (requires_newline(node, output.at(-1))) {
-        output.push({ type: "newline", str: "\n" });
+        output.push({ type: "raw", str: "\n" });
       }
       output.push(node);
     } else {

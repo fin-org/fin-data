@@ -207,7 +207,7 @@ export const { array, map } = fc.letrec((arb) => {
 });
 
 const top_level: fc.Arbitrary<ast.TopLevel> = map.map(
-  (m) => ({ ...m, top: true }),
+  (m) => ({ type: "top_level", expanded: true, elements: m.elements }),
 );
 
 const fmt_pair: fc.Arbitrary<[string, string]> = top_level.map(

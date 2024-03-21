@@ -1,29 +1,31 @@
 export type Value = Primitive | Collection | Extension;
+export type Node = TopLevel | Value | NonValue | MapEntry | Extra;
 
 // PRIMITIVES
 
 export type Primitive = Symbol | Number | EscapedString | RawString;
 
-interface Base {
+export interface Output {
+  type: string;
   str: string;
   expanded?: boolean;
   block?: boolean;
   parent?: Parent;
 }
 
-export interface Symbol extends Base {
+export interface Symbol extends Output {
   type: "symbol";
 }
 
-export interface Number extends Base {
+export interface Number extends Output {
   type: "number";
 }
 
-export interface EscapedString extends Base {
+export interface EscapedString extends Output {
   type: "escaped_string";
 }
 
-export interface RawString extends Base {
+export interface RawString extends Output {
   type: "raw_string";
 }
 
@@ -39,6 +41,13 @@ export interface Map {
   tag?: Symbol;
   expanded: boolean;
   elements: MapElement[];
+  parent?: Parent;
+}
+
+export interface TopLevel {
+  type: "top_level";
+  expanded: true;
+  elements: MapElement[];
 }
 
 export interface MapEntry {
@@ -47,11 +56,7 @@ export interface MapEntry {
   eq: Eq;
   val: Value;
   expanded: boolean;
-}
-
-export interface Eq {
-  type: "eq";
-  str: string;
+  parent?: Parent;
 }
 
 export interface Array {
@@ -59,10 +64,27 @@ export interface Array {
   tag?: Symbol;
   expanded: boolean;
   elements: ArrayElement[];
+  parent?: Parent;
 }
 
-export interface TopLevel extends Map {
-  top: true;
+// EXTRA
+
+export type Extra = Eq | Open | Close | Raw;
+
+export interface Raw extends Output {
+  type: "raw";
+}
+
+export interface Eq extends Output {
+  type: "eq";
+}
+
+export interface Open extends Output {
+  type: "open";
+}
+
+export interface Close extends Output {
+  type: "close";
 }
 
 // EXTENSIONS
@@ -75,12 +97,12 @@ export interface ExtendedSymbol extends Symbol {
 
 export interface ExtendedMap extends Map {
   ext: true;
-  tag: Symbol;
+  tag: ExtendedSymbol;
 }
 
 export interface ExtendedArray extends Array {
   ext: true;
-  tag: Symbol;
+  tag: ExtendedSymbol;
 }
 
 // NON VALUES
@@ -92,11 +114,11 @@ export type NonValue =
   | DiscardedArray
   | DiscardedSymbol;
 
-export interface Comment extends Base {
+export interface Comment extends Output {
   type: "comment";
 }
 
-export interface Gap extends Base {
+export interface Gap extends Output {
   type: "gap";
 }
 
