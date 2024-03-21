@@ -11,6 +11,7 @@ export interface Output {
   expanded?: boolean;
   block?: boolean;
   parent?: Parent;
+  depth?: number;
 }
 
 export interface Symbol extends Output {
@@ -34,7 +35,9 @@ export interface RawString extends Output {
 export type Collection = Map | Array;
 export type MapElement = MapEntry | NonValue;
 export type ArrayElement = Value | NonValue;
-export type Parent = MapEntry | Array;
+export type Parent = MapEntry | Array | Map | TopLevel;
+
+export type Gaps = "\n" | "\n\n" | ", ";
 
 export interface Map {
   type: "map";
@@ -42,12 +45,17 @@ export interface Map {
   expanded: boolean;
   elements: MapElement[];
   parent?: Parent;
+  depth?: number;
+  midline?: boolean;
+  gap?: Gaps;
 }
 
 export interface TopLevel {
   type: "top_level";
   expanded: true;
   elements: MapElement[];
+  midline?: boolean;
+  gap?: Gaps;
 }
 
 export interface MapEntry {
@@ -57,6 +65,9 @@ export interface MapEntry {
   val: Value;
   expanded: boolean;
   parent?: Parent;
+  depth?: number;
+  midline: undefined;
+  gap: undefined;
 }
 
 export interface Array {
@@ -65,6 +76,9 @@ export interface Array {
   expanded: boolean;
   elements: ArrayElement[];
   parent?: Parent;
+  depth?: number;
+  midline?: boolean;
+  gap?: Gaps;
 }
 
 // EXTRA

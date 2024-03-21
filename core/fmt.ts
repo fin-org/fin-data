@@ -61,14 +61,15 @@ export function to_string(node: ast.Node) {
 
 const blocks = new Set(["comment", "raw_string"]);
 
-export function to_formatted_nodes(data: any) {
-  const stack = [data];
-  const output = [];
+export function to_formatted_nodes(data: ast.Node) {
+  const stack: ast.Node[] = [data];
+  const output: ast.Output[] = [];
   while (stack.length > 0) {
     const node = stack.pop();
+    if (node === undefined) break;
     // console.log("rendering", node.type);
-    if (node.top) {
-      node.elements.reduceRight((st: any[], el: any) => {
+    if (node.type === "top_level") {
+      node.elements.reduceRight((st, el) => {
         st.push(el);
         el.parent = node;
         el.depth = 0;
@@ -77,22 +78,23 @@ export function to_formatted_nodes(data: any) {
     } else if (node.type === "gap") {
       // --- GAPS ---
       const { parent } = node;
+      if (!parent) throw new Error("no parent");
 
       // ignore gaps for inline parents (they're added automatically)
       if (!parent.expanded) continue;
 
       if (parent.midline) {
         // midline. capture intent to continue or up to two line feeds
-        if (parent.gap === ",") continue;
+        if (parent.gap === ", ") continue;
         if (node.str.includes(",")) {
-          parent.gap = ",";
+          parent.gap = ", ";
           continue;
         }
         const lfs = `${parent.gap ?? ""}${node.str}`.split("\n", 3).length - 1;
-        parent.gap = lfs > 0 ? "\n".repeat(lfs) : undefined;
+        parent.gap = (lfs > 0 ? "\n".repeat(lfs) : undefined) as ast.Gaps;
       } else {
         // newline. parent gap can only be a single line feed
-        if (parent.gap === ",") throw new Error("bad gap state");
+        if (parent.gap === ", ") throw new Error("bad gap state");
         if (parent.gap === "\n") continue;
         if (node.str.includes("\n")) parent.gap = "\n";
       }
@@ -102,21 +104,26 @@ export function to_formatted_nodes(data: any) {
       // --- COMMENTS & RAW STRINGS ---
       const { parent } = node;
 
-      // check parent is expanded
+      // assertions
+      if (!parent) throw new Error("no parent");
       if (!parent.expanded) throw new Error("parent not expanded");
+      if (node.depth === undefined) throw new Error("depth not set");
 
       // render the correct gap
       if (parent.midline) {
-        output.push({ str: parent.gap?.startsWith("\n") ? parent.gap : "\n" });
+        output.push({
+          type: "gap",
+          str: parent.gap?.startsWith("\n") ? parent.gap : "\n",
+        });
         parent.midline = false;
       } else if (parent.gap) {
-        output.push({ str: parent.gap });
+        output.push({ type: "gap", str: parent.gap });
       }
 
       // render the comment with correct indentation
       const comment: string = node.str.split("\n")
         .filter((l: string) => l.includes(node.type === "comment" ? "#" : "|"))
-        .map((l: string) => `${"\t".repeat(node.depth)}${l.trimStart()}`)
+        .map((l: string) => `${"\t".repeat(node.depth ?? 0)}${l.trimStart()}`)
         .join("\n");
       node.str = comment + "\n";
       delete node.parent;
@@ -128,9 +135,12 @@ export function to_formatted_nodes(data: any) {
       // ---
     } else if (node.type === "map_entry") {
       // --- MAP ENTRIES ---
+      const { parent, key, val } = node;
+
+      // assertions
+      if (!parent) throw new Error("no parent");
 
       // set parent and depth for key/val nodes.
-      const { parent, key, val } = node;
       if (parent.type !== "map") throw new Error("bad parent type");
       val.parent = node;
       val.depth = node.depth;
@@ -142,16 +152,17 @@ export function to_formatted_nodes(data: any) {
         const val_block = blocks.has(node.val.type);
 
         if (parent.midline) {
-          if (!key_block && parent.gap === ",") {
-            output.push({ str: ", " });
+          if (!key_block && parent.gap === ", ") {
+            output.push({ type: "gap", str: parent.gap });
           } else {
             output.push({
+              type: "gap",
               str: parent.gap?.startsWith("\n") ? parent.gap : "\n",
             });
             key.indent = true;
           }
         } else {
-          if (parent.gap) output.push({ str: parent.gap });
+          if (parent.gap) output.push({ type: "gap", str: parent.gap });
           key.indent = true;
         }
         parent.midline = !val_block;
@@ -159,7 +170,7 @@ export function to_formatted_nodes(data: any) {
 
         // render key/val
         stack.push(val);
-        node.eq.str = (key_block ? "\t".repeat(node.depth) : " ") +
+        node.eq.str = (key_block ? "\t".repeat(node.depth ?? 0) : " ") +
           "=" + (val_block ? "\n" : " ");
         stack.push(node.eq);
         stack.push(key);
@@ -180,21 +191,24 @@ export function to_formatted_nodes(data: any) {
       // --- SYMBOLS, NUMBERS & ESCAPED STRINGS ---
       const { parent } = node;
 
+      // assertions
+      if (!parent) throw new Error("no parent");
+
       // if an array element render gap
       if (parent.type === "array" && parent.expanded && !node.tag) {
         if (parent.gap !== undefined) {
-          output.push({ str: parent.gap === "," ? ", " : parent.gap });
+          output.push({ type: "gap", str: parent.gap });
           parent.midline = !parent.gap.includes("\n");
           parent.gap = undefined;
         } else if (parent.midline) {
-          output.push({ str: ", " });
+          output.push({ type: "gap", str: ", " });
         }
         if (!parent.midline) {
-          node.str = "\t".repeat(node.depth) + node.str;
+          node.str = "\t".repeat(node.depth ?? 0) + node.str;
         }
         parent.midline = true;
       } else if (node.indent) {
-        node.str = "\t".repeat(node.depth) + node.str;
+        node.str = "\t".repeat(node.depth ?? 0) + node.str;
       }
 
       delete node.parent;
@@ -205,15 +219,18 @@ export function to_formatted_nodes(data: any) {
       // --- MAPS && ARRAYS ---
       const { parent } = node;
 
+      // assertions
+      if (!parent) throw new Error("no parent");
+
       // if an array element render gap
       if (parent.type === "array") {
         if (parent.gap !== undefined) {
           if (!parent.expanded) throw new Error("gaps have not been stripped");
-          output.push({ str: parent.gap === "," ? ", " : parent.gap });
+          output.push({ type: "gap", str: parent.gap });
           parent.midline = !parent.gap.includes("\n");
           parent.gap = undefined;
         } else if (parent.midline) {
-          output.push({ str: ", " });
+          output.push({ type: "gap", str: ", " });
         }
         if (!parent.midline) node.indent = true;
         parent.midline = true;
@@ -221,7 +238,7 @@ export function to_formatted_nodes(data: any) {
 
       if (!node.expanded) {
         // remove gaps
-        node.elements = node.elements.filter((el: any) => el.type !== "gap");
+        node.elements = node.elements.filter((el) => el.type !== "gap");
       }
 
       stack.push({
@@ -229,10 +246,10 @@ export function to_formatted_nodes(data: any) {
         str: node.type === "map" ? ")" : "]",
         parent: node,
       });
-      node.elements.reduceRight((st: any[], el: any, i: number) => {
+      node.elements.reduceRight((st, el, i) => {
         st.push(el);
         el.parent = node;
-        el.depth = node.depth + 1;
+        el.depth = (node.depth ?? 0) + 1;
         if (i > 0 && !node.expanded) {
           st.push({ type: "raw", str: ", " });
         }
@@ -253,19 +270,30 @@ export function to_formatted_nodes(data: any) {
 
       //
     } else if (node.type === "open") {
-      if (node.parent.tag === null && node.parent.indent) {
-        node.str = "\t".repeat(node.parent.depth) + node.str;
+      const { parent } = node;
+
+      // assertions
+      if (parent === undefined) throw new Error("no parent");
+      if (parent.type === "top_level") throw new Error("bad parent");
+
+      if (parent.tag === null && parent.indent) {
+        node.str = "\t".repeat(parent.depth ?? 0) + node.str;
       }
-      if (node.parent.expanded) node.str += "\n";
+      if (parent.expanded) node.str += "\n";
       output.push(node);
     } else if (node.type === "close") {
-      if (node.parent.expanded) {
-        if (node.parent.gap?.startsWith("\n")) {
-          output.push({ str: node.parent.gap });
-          node.parent.midline = undefined;
+      const { parent } = node;
+      // assertions
+      if (parent === undefined) throw new Error("no parent");
+      if (parent.type === "top_level") throw new Error("bad parent");
+
+      if (parent.expanded) {
+        if (parent.gap?.startsWith("\n")) {
+          output.push({ type: "gap", str: parent.gap });
+          parent.midline = undefined;
         }
-        node.str = "\t".repeat(node.parent.depth) + node.str;
-        if (node.parent.midline) node.str = "\n" + node.str;
+        node.str = "\t".repeat(parent.depth ?? 0) + node.str;
+        if (parent.midline) node.str = "\n" + node.str;
       }
       output.push(node);
     } else if (node.type === "raw") {
@@ -276,27 +304,17 @@ export function to_formatted_nodes(data: any) {
   }
 
   // final newline
-  if (output.length > 0 && !output.at(-1).str.endsWith("\n")) {
-    output.push({ str: "\n" });
+  if (output.length > 0 && !output.at(-1)?.str.endsWith("\n")) {
+    output.push({ type: "gap", str: "\n" });
   }
 
   return output;
 }
 
-export function to_formatted_string(data: any) {
+export function to_formatted_string(data: ast.Node) {
   return to_formatted_nodes(data).map((n) => n.str).join("");
 }
 
 if (import.meta.main) {
-  const data = {
-    type: "map",
-    tag: null,
-    expanded: true,
-    top: true,
-    elements: [],
-  };
-
-  console.log(data);
-  console.log(to_formatted_nodes(data));
-  console.log(to_formatted_string(data));
+  //
 }
