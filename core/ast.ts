@@ -1,50 +1,47 @@
-type Value = Primitive | Collection | Extension;
+export type Value = Primitive | Collection | Extension;
 
 // PRIMITIVES
 
-type Primitive = Symbol | Number | EscapedString | RawString;
+export type Primitive = Symbol | Number | EscapedString | RawString;
 
-interface Symbol {
+interface Base {
+  str: string;
+  expanded?: boolean;
+  block?: boolean;
+  parent?: Parent;
+}
+
+export interface Symbol extends Base {
   type: "symbol";
-  str: string;
-  parent?: Parent;
 }
 
-interface Number {
+export interface Number extends Base {
   type: "number";
-  str: string;
-  parent?: Parent;
 }
 
-interface EscapedString {
+export interface EscapedString extends Base {
   type: "escaped_string";
-  str: string;
-  parent?: Parent;
 }
 
-interface RawString {
+export interface RawString extends Base {
   type: "raw_string";
-  expanded: true;
-  block: true;
-  str: string;
-  parent?: Parent;
 }
 
 // COLLECTIONS
 
-type Collection = Map | Array;
-type MapElement = MapEntry | NonValue;
-type ArrayElement = Value | NonValue;
-type Parent = MapEntry | Array;
+export type Collection = Map | Array;
+export type MapElement = MapEntry | NonValue;
+export type ArrayElement = Value | NonValue;
+export type Parent = MapEntry | Array;
 
-interface Map {
+export interface Map {
   type: "map";
   tag?: Symbol;
   expanded: boolean;
   elements: MapElement[];
 }
 
-interface MapEntry {
+export interface MapEntry {
   type: "map_entry";
   key: Value;
   eq: Eq;
@@ -52,62 +49,65 @@ interface MapEntry {
   expanded: boolean;
 }
 
-interface Eq {
+export interface Eq {
   type: "eq";
   str: string;
 }
 
-interface Array {
+export interface Array {
   type: "array";
   tag?: Symbol;
   expanded: boolean;
   elements: ArrayElement[];
 }
 
+export interface TopLevel extends Map {
+  top: true;
+}
+
 // EXTENSIONS
 
-type Extension = ExtendedSymbol | ExtendedMap | ExtendedArray;
+export type Extension = ExtendedSymbol | ExtendedMap | ExtendedArray;
 
-interface ExtendedSymbol extends Symbol {
+export interface ExtendedSymbol extends Symbol {
   ext: true;
 }
 
-interface ExtendedMap extends Map {
+export interface ExtendedMap extends Map {
   ext: true;
   tag: Symbol;
 }
 
-interface ExtendedArray extends Array {
+export interface ExtendedArray extends Array {
   ext: true;
   tag: Symbol;
 }
 
 // NON VALUES
 
-type NonValue = Comment | Gap | DiscardedMap | DiscardedArray | DiscardedSymbol;
+export type NonValue =
+  | Comment
+  | Gap
+  | DiscardedMap
+  | DiscardedArray
+  | DiscardedSymbol;
 
-interface Comment {
+export interface Comment extends Base {
   type: "comment";
-  expanded: true;
-  block: true;
-  str: string;
-  parent?: Parent;
 }
 
-interface Gap {
+export interface Gap extends Base {
   type: "gap";
-  str: string;
-  parent?: Parent;
 }
 
-interface DiscardedSymbol extends ExtendedSymbol {
+export interface DiscardedSymbol extends ExtendedSymbol {
   discarded: true;
 }
 
-interface DiscardedMap extends ExtendedMap {
+export interface DiscardedMap extends ExtendedMap {
   discarded: true;
 }
 
-interface DiscardedArray extends ExtendedArray {
+export interface DiscardedArray extends ExtendedArray {
   discarded: true;
 }
