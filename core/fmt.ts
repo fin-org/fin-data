@@ -20,6 +20,7 @@ function push(stack: any[], el: any) {
   return stack;
 }
 
+// TODO move to ast.
 export function to_string(data: any) {
   const stack = [data];
   const output = [];

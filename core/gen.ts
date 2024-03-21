@@ -1,5 +1,6 @@
 import * as fc from "fast-check";
 import * as ast from "./ast.ts";
+import * as fmt from "./fmt.ts";
 
 // SYMBOLS
 
@@ -8,6 +9,12 @@ export const symbol: fc.Arbitrary<ast.Symbol> = fc.stringMatching(
 ).map((s) => (s.replace(/::+/g, ":").replace(/__+/g, "_")))
   .filter((s) => !s.endsWith(":"))
   .filter((s) => !/:\d/.test(s))
+  .filter((s) => {
+    if (s.startsWith("fin:")) return false;
+    if (s.startsWith("ext:")) return false;
+    if (s === "true" || s === "false") return false;
+    return true;
+  })
   .map((str) => ({ type: "symbol", str }));
 
 // NUMBERS
@@ -125,111 +132,87 @@ const eq: fc.Arbitrary<ast.Eq> = fc.tuple(gap, gap).map(
   ([g1, g2]) => ({ type: "eq", str: `${g1.str}=${g2.str}` }),
 );
 
+const tag = fc.oneof(
+  { arbitrary: symbol, weight: 1 },
+  { arbitrary: fc.constant(undefined), weight: 3 },
+);
+
 // DATA
 
-interface Rec {
-  // value: fc.Arbitrary<ast.Value>
-  // non_value: fc.Arbitrary<ast.NonValue>
-  // array_element: fc.Arbitrary<ast.ArrayElement>
-  // array: fc.Arbitrary<ast.Array>
-  // map: fc.Arbitrary<ast.Map>
-  // map_entry: fc.Arbitrary<ast.MapEntry>
-  // map_element: fc.Arbitrary<ast.MapElement>
-  tag: fc.Arbitrary<ast.Symbol | undefined>;
-}
+export const { array, map } = fc.letrec((arb) => {
+  const value: fc.Arbitrary<ast.Value> = fc.oneof(
+    { arbitrary: symbol, weight: 1 },
+    { arbitrary: number, weight: 1 },
+    { arbitrary: escaped_string, weight: 1 },
+    { arbitrary: raw_string, weight: 1 },
+    { arbitrary: boolean, weight: 1 },
+    { arbitrary: arb("array") as fc.Arbitrary<ast.Array>, weight: 1 },
+    { arbitrary: arb("map") as fc.Arbitrary<ast.Map>, weight: 1 },
+  );
 
-const { tag }: Rec = fc.letrec((arb) => ({
-  // values
-  // value: fc.oneof(
-  //   { arbitrary: symbol, weight: 1 },
-  //   { arbitrary: number, weight: 1 },
-  //   { arbitrary: escaped_string, weight: 1 },
-  //   { arbitrary: raw_string, weight: 1 },
-  //   { arbitrary: boolean, weight: 1 },
-  //   { arbitrary: arb("array"), weight: 1 },
-  //   { arbitrary: arb("map"), weight: 1 },
-  // ),
+  const non_value: fc.Arbitrary<ast.NonValue> = fc.oneof(
+    { arbitrary: comment, weight: 1 },
+    { arbitrary: gap, weight: 3 },
+    // TODO discarded extensions
+  );
 
-  // non-values
-  // non_value: fc.oneof(
-  //   { arbitrary: comment, weight: 1 },
-  //   { arbitrary: gap, weight: 3 },
-  //   // TODO discarded extensions
-  // ),
+  const array_elements: fc.Arbitrary<ast.ArrayElement[]> = fc.array(fc.oneof(
+    { arbitrary: value, weight: 1 },
+    { arbitrary: non_value, weight: 1 },
+  ));
 
-  // arrays
-  tag: fc.oneof(
-    {
-      arbitrary: symbol.filter(({ str }) => {
-        if (str.startsWith("fin:")) return false;
-        if (str.startsWith("ext:")) return false;
-        if (str === "true" || str === "false") return false;
-        return true;
-      }),
-      weight: 1,
-    },
-    { arbitrary: fc.constant(undefined), weight: 3 },
-  ),
-  // array_element: fc.oneof(
-  //   { arbitrary: arb("value"), weight: 1 },
-  //   { arbitrary: arb("non_value"), weight: 1 },
-  // ),
-  // array: fc.tuple(
-  //   arb("tag"),
-  //   fc.array(arb("array_element") as fc.Arbitrary<ast.ArrayElement>),
-  // ).map((
-  //   [tag, elements],
-  // ) => ({
-  //   type: "array",
-  //   tag,
-  //   elements,
-  //   expanded: elements.some((e) => e.expanded),
-  // })),
+  const array: fc.Arbitrary<ast.Array> = fc.tuple(tag, array_elements).map((
+    [tag, elements],
+  ) => ({
+    type: "array",
+    tag,
+    elements,
+    expanded: elements.some((e) => e.expanded),
+  }));
 
-  // maps
-  // map_entry: fc.tuple(
-  //   arb("value") as fc.Arbitrary<ast.Value>,
-  //   eq,
-  //   arb("value") as fc.Arbitrary<ast.Value>,
-  // ).map((
-  //   [key, eq, val],
-  // ) => ({
-  //   type: "map_entry",
-  //   key,
-  //   eq,
-  //   val,
-  //   expanded: Boolean(key.expanded || val.expanded),
-  // })),
-  // map_element: fc.oneof(
-  //   { arbitrary: arb("map_entry"), weight: 1 },
-  //   { arbitrary: arb("non_value"), weight: 1 },
-  // ),
-  // map: fc.tuple(
-  //   arb("tag") as fc.Arbitrary<ast.Symbol>,
-  //   fc.array(arb("map_element") as fc.Arbitrary<ast.MapElement>),
-  // ).map((
-  //   [tag, elements],
-  // ) => ({
-  //   type: "map",
-  //   tag,
-  //   elements,
-  //   expanded: elements.some((e) => e.expanded),
-  // })).filter(({ elements }) => {
-  //   const consecutive_raw_string = elements.some((el, i, arr) => {
-  //     if (i === 0) return false;
-  //     if (el.type !== "map_entry") return false;
-  //     const prev = arr[i - 1];
-  //     if (prev.type !== "map_entry") return false;
-  //     return prev?.val?.type === "raw_string" && el?.key?.type === "raw_string";
-  //   });
-  //   return !consecutive_raw_string;
-  // }),
-}));
+  const map_entry: fc.Arbitrary<ast.MapEntry> = fc.tuple(value, eq, value).map((
+    [key, eq, val],
+  ) => ({
+    type: "map_entry",
+    key,
+    eq,
+    val,
+    expanded: Boolean(key.expanded || val.expanded),
+  }));
 
-const top_level: fc.Arbitrary<ast.TopLevel> = map.map((m) => ({
-  ...(m as ast.Map),
-  top: true,
-}));
+  const map_elements: fc.Arbitrary<ast.MapElement[]> = fc.array(fc.oneof(
+    { arbitrary: map_entry, weight: 1 },
+    { arbitrary: non_value, weight: 1 },
+  )).filter((elements) => {
+    const consecutive_raw_string = elements.some((el, i, arr) => {
+      if (i === 0) return false;
+      if (el.type !== "map_entry") return false;
+      const prev = arr[i - 1];
+      if (prev.type !== "map_entry") return false;
+      return prev.val.type === "raw_string" && el.key.type === "raw_string";
+    });
+    return !consecutive_raw_string;
+  });
+
+  const map: fc.Arbitrary<ast.Map> = fc.tuple(tag, map_elements).map((
+    [tag, elements],
+  ) => ({
+    type: "map",
+    tag,
+    elements,
+    expanded: elements.some((e) => e.expanded),
+  }));
+
+  return { array, map };
+});
+
+const top_level: fc.Arbitrary<ast.TopLevel> = map.map(
+  (m) => ({ ...m, top: true }),
+);
+
+const fmt_pair: fc.Arbitrary<[string, string]> = top_level.map(
+  (m) => [fmt.to_string(m), fmt.to_formatted_string(m)],
+);
 
 // SAMPLES
 
@@ -244,4 +227,8 @@ if (import.meta.main) {
   for (const s of fc.sample(raw_string, 5)) console.log(s);
   console.log("\ncomments...");
   for (const s of fc.sample(comment, 5)) console.log(s);
+  console.log("\top level value...");
+  console.log(fc.sample(top_level, 1));
+  console.log("\format pair...");
+  console.log(fc.sample(fmt_pair, 1));
 }
