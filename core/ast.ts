@@ -69,16 +69,16 @@ interface Array {
 type Extension = ExtendedSymbol | ExtendedMap | ExtendedArray;
 
 interface ExtendedSymbol extends Symbol {
-  extension: true;
+  ext: true;
 }
 
 interface ExtendedMap extends Map {
-  extended: true;
+  ext: true;
   tag: Symbol;
 }
 
 interface ExtendedArray extends Array {
-  extended: true;
+  ext: true;
   tag: Symbol;
 }
 
