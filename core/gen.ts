@@ -1,6 +1,6 @@
 import * as fc from "fast-check";
 import * as ast from "./ast.ts";
-import * as fmt from "./fmt.ts";
+import * as fmt from "./format.ts";
 
 // SYMBOLS
 
@@ -112,6 +112,8 @@ export const comment: fc.Arbitrary<ast.Comment> = raw_block("#").map(
 
 // EXTENSIONS
 
+// TODO add builtins, custom extensions and discards
+
 export const boolean: fc.Arbitrary<ast.ExtendedSymbol> = fc.boolean()
   .map((b) => ({
     type: "symbol",
@@ -178,6 +180,8 @@ export const { array, map } = fc.letrec((arb) => {
     eq,
     val,
     expanded: Boolean(key.expanded || val.expanded),
+    midline: undefined,
+    gap: undefined,
   }));
 
   const map_elements: fc.Arbitrary<ast.MapElement[]> = fc.array(fc.oneof(

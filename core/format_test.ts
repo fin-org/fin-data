@@ -1,6 +1,9 @@
 import { assertEquals } from "std/assert/mod.ts";
-import { to_formatted_string } from "./fmt.ts";
+import { to_formatted_string } from "./format.ts";
 import * as ast from "./ast.ts";
+
+// TODO this is too verbose, simplify.
+// How about PBTs that would improve this.
 
 Deno.test({
   name: "gaps and comments",
