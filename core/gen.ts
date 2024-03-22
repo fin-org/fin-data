@@ -231,8 +231,8 @@ if (import.meta.main) {
   for (const s of fc.sample(raw_string, 5)) console.log(s);
   console.log("\ncomments...");
   for (const s of fc.sample(comment, 5)) console.log(s);
-  console.log("\top level value...");
+  console.log("\ntop level value...");
   console.log(fc.sample(top_level, 1));
-  console.log("\format pair...");
+  console.log("\nformat pair...");
   console.log(fc.sample(fmt_pair, 1));
 }
