@@ -1,358 +1,144 @@
 import { assertEquals } from "std/assert/mod.ts";
 import { to_formatted_string } from "./format.ts";
-import * as ast from "./ast.ts";
+import {
+  arr,
+  com,
+  esc_str,
+  gap,
+  kv,
+  map,
+  num,
+  raw_str,
+  sym,
+  tarr,
+  tmap,
+  top,
+} from "./ast.ts";
 
-// TODO this is too verbose, simplify.
-// How about PBTs that would improve this.
+// TODO some PBTs.
 
 Deno.test({
   name: "gaps and comments",
   fn: () => {
-    assertEquals(
-      to_formatted_string({
-        type: "top_level",
-        elements: [
-          { type: "gap", str: "" },
-          { type: "gap", str: " \t\n" },
-          { type: "gap", str: "\n \t," },
-          {
-            type: "comment",
-            str: "#abc\n\t\t \t #熞def\n\t \t\t\t #鏜\n\t #🐬\n",
-            expanded: true,
-          },
-          { type: "gap", str: ",\n \n " },
-          { type: "comment", str: "#$.쒃\n \t\t", expanded: true },
-          { type: "gap", str: "" },
-          { type: "gap", str: "," },
-        ],
-        expanded: true,
-      }),
-      "\n#abc\n#熞def\n#鏜\n#🐬\n\n#$.쒃\n",
+    const data = top(
+      gap(""),
+      gap("\t\n"),
+      gap("\n \t,"),
+      com("#abc\n\t\t \t #熞def\n\t \t\t\t #鏜\n\t #🐬\n"),
+      gap(",\n \n "),
+      com("#$.쒃\n \t\t"),
+      gap(""),
+      gap(","),
     );
-  },
-});
-
-Deno.test({
-  name: "map_entries - same line",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "b" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " , " },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "c" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "d" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "\n\n , \n " },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "e" },
-          eq: { type: "eq", str: " =\n" },
-          val: { type: "symbol", str: "f" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "a = b, c = d, e = f\n";
+    const res = "\n#abc\n#熞def\n#鏜\n#🐬\n\n#$.쒃\n";
     assertEquals(to_formatted_string(data), res);
   },
 });
 
 Deno.test({
-  name: "map_entries - separate lines",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "b" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " " },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "c" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "d" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " \n\n\n " },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "e" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "f" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "a = b\nc = d\n\ne = f\n";
-    assertEquals(to_formatted_string(data), res);
-  },
-});
+  name: "map entries",
+  async fn(t) {
+    await t.step({
+      name: "same line",
+      fn() {
+        const data = top(
+          kv(sym("a"), sym("b")),
+          gap("  , "),
+          kv(sym("c"), sym("d")),
+          gap("\n\n , \n "),
+          kv(sym("e"), sym("f"), " = \n"),
+        );
+        const res = "a = b, c = d, e = f\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
 
-Deno.test({
-  name: "map_entries - block vals",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "b" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "," },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "c" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "raw_string", str: "|d\n" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "\t, \n\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "e" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "raw_string", str: "|f\n" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "a = b, c =\n|d\n\ne =\n|f\n";
-    assertEquals(to_formatted_string(data), res);
-  },
-});
+    await t.step({
+      name: "new lines",
+      fn() {
+        const data = top(
+          kv(sym("a"), sym("b"), "\n=\t"),
+          gap(" "),
+          kv(sym("c"), sym("d")),
+          gap(" \n\n\n "),
+          kv(sym("e"), sym("f")),
+        );
+        const res = "a = b\nc = d\n\ne = f\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
 
-Deno.test({
-  name: "map_entries - block keys",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "b" },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " , " },
-        {
-          type: "map_entry",
-          key: { type: "raw_string", str: "|c\n" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "d" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "\t, \n\n," },
-        {
-          type: "map_entry",
-          key: { type: "raw_string", str: "|e\n" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "symbol", str: "f" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "a = b\n|c\n= d\n|e\n= f\n";
-    assertEquals(to_formatted_string(data), res);
-  },
-});
+    await t.step({
+      name: "block vals",
+      fn() {
+        const data = top(
+          kv(sym("a"), sym("b")),
+          gap(","),
+          kv(sym("c"), raw_str("|d\n")),
+          gap("\t, \n\n"),
+          kv(sym("e"), raw_str("|f\n"), ",,=\t"),
+        );
+        const res = "a = b, c =\n|d\n\ne =\n|f\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
 
-Deno.test({
-  name: "map_entries - block keys & vals",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        { type: "gap", str: " ,\t" },
-        {
-          type: "map_entry",
-          key: { type: "raw_string", str: "|a\n" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "raw_string", str: "|b\n" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "\t,\n\t" },
-        {
-          type: "map_entry",
-          key: { type: "raw_string", str: "|c\n" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "raw_string", str: "|d\n" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "\t, " },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "e" },
-          eq: { type: "eq", str: "=" },
-          val: { type: "raw_string", str: "|f\n" },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "|a\n=\n|b\n\n|c\n=\n|d\ne =\n|f\n";
-    assertEquals(to_formatted_string(data), res);
+    await t.step({
+      name: "block keys",
+      fn() {
+        const data = top(
+          kv(sym("a"), sym("b")),
+          gap(" , "),
+          kv(raw_str("|c\n"), sym("d"), " = \n"),
+          gap("\t, \n\n,"),
+          kv(raw_str("|e\n"), sym("f")),
+        );
+        const res = "a = b\n|c\n= d\n|e\n= f\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
+
+    await t.step({
+      name: "block keys & vals",
+      fn() {
+        const data = top(
+          gap(" ,\t"),
+          kv(raw_str("|a\n"), raw_str("|b\n")),
+          gap("\t,\n\t"),
+          kv(raw_str("|c\n"), raw_str("|d\n"), ", = ,\n"),
+          gap("\t, "),
+          kv(sym("e"), raw_str("|f\n")),
+        );
+        const res = "|a\n=\n|b\n\n|c\n=\n|d\ne =\n|f\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
   },
 });
 
 Deno.test({
   name: "inline maps",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        { type: "gap", str: " ,\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: ",\t\t=" },
-          val: {
-            type: "map",
-            tag: undefined,
-            expanded: false,
-            elements: [],
-          },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " ,\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "b" },
-          eq: { type: "eq", str: "=" },
-          val: {
-            type: "map",
-            tag: { type: "symbol", str: "sym" },
-            expanded: false,
-            elements: [
-              {
-                type: "map_entry",
-                key: { type: "number", str: "1" },
-                eq: { type: "eq", str: "=" },
-                val: { type: "number", str: "2" },
-                expanded: false,
-                midline: undefined,
-                gap: undefined,
-              },
-            ],
-          },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " \n\t\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "c" },
-          midline: undefined,
-          gap: undefined,
-          expanded: false,
-          eq: { type: "eq", str: "=" },
-          val: {
-            type: "map",
-            tag: undefined,
-            expanded: false,
-            elements: [
-              {
-                type: "map_entry",
-                key: { type: "number", str: "1" },
-                eq: { type: "eq", str: "=" },
-                val: { type: "number", str: "2" },
-                expanded: false,
-                midline: undefined,
-                gap: undefined,
-              },
-              { type: "gap", str: " \t " },
-              {
-                type: "map_entry",
-                key: { type: "number", str: "3" },
-                eq: { type: "eq", str: "=" },
-                val: { type: "number", str: "4" },
-                expanded: false,
-                midline: undefined,
-                gap: undefined,
-              },
-              { type: "gap", str: "," },
-              {
-                type: "map_entry",
-                key: { type: "number", str: "5" },
-                eq: { type: "eq", str: "=" },
-                val: { type: "number", str: "6" },
-                expanded: false,
-                midline: undefined,
-                gap: undefined,
-              },
-              { type: "gap", str: "\n\t" },
-              {
-                type: "map_entry",
-                key: { type: "number", str: "7" },
-                eq: { type: "eq", str: "=" },
-                val: { type: "number", str: "8" },
-                expanded: false,
-                midline: undefined,
-                gap: undefined,
-              },
-              { type: "gap", str: "\n\n\n  \t, " },
-            ],
-          },
-        },
-      ],
-    };
+  fn() {
+    const data = top(
+      gap(" , \n"),
+      kv(sym("a"), map(), ",\t\t="),
+      gap(" ,\n"),
+      kv(sym("b"), tmap(sym("sym"), kv(num("1"), num("2")))),
+      gap(" \n\t\n"),
+      kv(
+        sym("c"),
+        map(
+          kv(num("1"), num("2")),
+          gap(" \t "),
+          kv(num("3"), num("4")),
+          gap(","),
+          kv(num("5"), num("6"), ",,\n=\n\n"),
+          gap("\n\t"),
+          kv(num("7"), num("8")),
+          gap("\n\n\n \t, "),
+        ),
+      ),
+    );
     const res =
       "\na = (), b = sym(1 = 2)\n\nc = (1 = 2, 3 = 4, 5 = 6, 7 = 8)\n";
     assertEquals(to_formatted_string(data), res);
@@ -361,69 +147,25 @@ Deno.test({
 
 Deno.test({
   name: "expanded maps",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          midline: undefined,
-          gap: undefined,
-          val: {
-            type: "map",
-            tag: undefined,
-            expanded: true,
-            elements: [
-              { type: "comment", str: "#\n\t", expanded: true },
-              {
-                type: "map_entry",
-                key: { type: "symbol", str: "b" },
-                eq: { type: "eq", str: "=" },
-                midline: undefined,
-                gap: undefined,
-                val: {
-                  type: "map",
-                  tag: { type: "symbol", str: "tag" },
-                  expanded: true,
-                  elements: [
-                    { type: "comment", str: "#\n\t", expanded: true },
-                    {
-                      type: "map_entry",
-                      key: { type: "number", str: "1" },
-                      eq: { type: "eq", str: "=" },
-                      val: { type: "number", str: "2" },
-                      expanded: false,
-                      midline: undefined,
-                      gap: undefined,
-                    },
-                    {
-                      type: "map_entry",
-                      key: {
-                        type: "map",
-                        tag: { type: "symbol", str: "_" },
-                        elements: [],
-                        expanded: false,
-                      },
-                      eq: { type: "eq", str: "=" },
-                      val: { type: "number", str: "3" },
-                      expanded: false,
-                      midline: undefined,
-                      gap: undefined,
-                    },
-                    { type: "gap", str: "\n\n" },
-                  ],
-                },
-                expanded: true,
-              },
-            ],
-          },
-          expanded: true,
-        },
-      ],
-    };
+  fn() {
+    const data = top(
+      kv(
+        sym("a"),
+        map(
+          com("#\n\t"),
+          kv(
+            sym("b"),
+            tmap(
+              sym("tag"),
+              com("#\n\t"),
+              kv(num("1"), num("2"), " ="),
+              kv(tmap(sym("_")), num("3")),
+              gap("\n\n"),
+            ),
+          ),
+        ),
+      ),
+    );
     const res =
       "a = (\n\t#\n\tb = tag(\n\t\t#\n\t\t1 = 2\n\t\t_() = 3\n\n\t)\n)\n";
     assertEquals(to_formatted_string(data), res);
@@ -431,112 +173,28 @@ Deno.test({
 });
 
 Deno.test({
-  name: "case 1",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "raw_string", str: "|a\n" },
-          eq: { type: "eq", str: "\n\n=\n," },
-          val: {
-            type: "map",
-            tag: undefined,
-            expanded: false,
-            elements: [
-              { type: "gap", str: " " },
-              {
-                type: "map_entry",
-                key: { type: "number", str: "-7" },
-                eq: { type: "eq", str: "\n ,,=,  , " },
-                val: { type: "number", str: "-0.8" },
-                expanded: false,
-                midline: undefined,
-                gap: undefined,
-              },
-            ],
-          },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: "\n\n" },
-      ],
-    };
-    const res = "|a\n= (-7 = -0.8)\n";
-    assertEquals(to_formatted_string(data), res);
-  },
-});
-
-Deno.test({
   name: "inline arrays",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        { type: "gap", str: " ,\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: ",\t\t=" },
-          val: {
-            type: "array",
-            tag: undefined,
-            expanded: false,
-            elements: [],
-          },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " ,\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "b" },
-          eq: { type: "eq", str: "=" },
-          val: {
-            type: "array",
-            tag: { type: "symbol", str: "sym" },
-            expanded: false,
-            elements: [
-              { type: "gap", str: "\n, " },
-              { type: "number", str: "1" },
-              { type: "gap", str: "\n, " },
-            ],
-          },
-          expanded: false,
-          midline: undefined,
-          gap: undefined,
-        },
-        { type: "gap", str: " \n\t\n" },
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "c" },
-          eq: { type: "eq", str: "=" },
-          midline: undefined,
-          gap: undefined,
-          expanded: false,
-          val: {
-            type: "array",
-            tag: undefined,
-            expanded: false,
-            elements: [
-              { type: "number", str: "1" },
-              { type: "gap", str: " \t " },
-              { type: "number", str: "2" },
-              { type: "gap", str: "," },
-              { type: "number", str: "3" },
-              { type: "gap", str: "\n\t" },
-              { type: "number", str: "4" },
-              { type: "gap", str: "\n\n\n  \t, " },
-            ],
-          },
-        },
-      ],
-    };
+  fn() {
+    const data = top(
+      gap(" , \n"),
+      kv(sym("a"), arr(), ",\t\t="),
+      gap(" ,\n"),
+      kv(sym("b"), tarr(sym("sym"), gap("\n, "), num("1"), gap("\n,  \t"))),
+      gap(" \n\t\n"),
+      kv(
+        sym("c"),
+        arr(
+          num("1"),
+          gap(" \t "),
+          num("2"),
+          gap(","),
+          num("3"),
+          gap("\n\t"),
+          num("4"),
+          gap("\n\n\n \t, "),
+        ),
+      ),
+    );
     const res = "\na = [], b = sym[1]\n\nc = [1, 2, 3, 4]\n";
     assertEquals(to_formatted_string(data), res);
   },
@@ -544,122 +202,76 @@ Deno.test({
 
 Deno.test({
   name: "expanded arrays",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: {
-            type: "array",
-            tag: undefined,
-            expanded: true,
-            elements: [
-              { type: "gap", str: " \n, \t" },
-              { type: "number", str: "98" },
-              { type: "gap", str: ", \n\t\n " },
-
-              {
-                type: "array",
-                tag: { type: "symbol", str: "b" },
-                expanded: true,
-                elements: [
-                  { type: "gap", str: ",, " },
-                  { type: "comment", str: "#\n" },
-                  { type: "gap", str: " \t, " },
-                  { type: "symbol", str: "c" },
-                  { type: "gap", str: " , " },
-                ],
-              },
-              { type: "gap", str: "\n\n" },
-            ],
-          },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
+  fn() {
+    const data = top(
+      kv(
+        sym("a"),
+        arr(
+          gap(" \n, \t"),
+          num("98"),
+          gap(", \n\t\n"),
+          tarr(
+            sym("b"),
+            gap(",, "),
+            com("#\n"),
+            gap(" \t, "),
+            sym("c"),
+            gap(" , "),
+          ),
+          gap("\n\n"),
+        ),
+      ),
+    );
     const res = "a = [\n\n\t98, b[\n\t\t#\n\t\tc\n\t]\n\n]\n";
     assertEquals(to_formatted_string(data), res);
   },
 });
 
 Deno.test({
-  name: "case 2",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: {
-            type: "array",
-            tag: undefined,
-            expanded: true,
-            elements: [
-              { type: "comment", str: "#\n" },
-              {
-                type: "array",
-                tag: { type: "symbol", str: "b" },
-                expanded: false,
-                elements: [],
-              },
-              {
-                type: "map",
-                tag: undefined,
-                expanded: false,
-                elements: [],
-              },
-              { type: "number", str: "98" },
-            ],
-          },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "a = [\n\t#\n\tb[], (), 98\n]\n";
-    assertEquals(to_formatted_string(data), res);
-  },
-});
+  name: "specific cases",
+  async fn(t) {
+    await t.step({
+      name: "case 1",
+      fn() {
+        const data = top(
+          kv(
+            raw_str("|a\n"),
+            map(
+              gap(" "),
+              kv(num("-7"), num("-0.8"), "\n ,,=,  , "),
+              gap("\n\n"),
+            ),
+            "\n\n=\n,",
+          ),
+        );
+        const res = "|a\n= (-7 = -0.8)\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
 
-Deno.test({
-  name: "case 3",
-  fn: () => {
-    const data: ast.TopLevel = {
-      type: "top_level",
-      expanded: true,
-      elements: [
-        {
-          type: "map_entry",
-          key: { type: "symbol", str: "a" },
-          eq: { type: "eq", str: "=" },
-          val: {
-            type: "array",
-            tag: { type: "symbol", str: "i" },
-            expanded: true,
-            elements: [
-              { type: "escaped_string", str: "98" },
-              { type: "gap", str: "\n" },
-              { type: "symbol", str: "z4" },
-              { type: "comment", str: "#\n" },
-            ],
-          },
-          expanded: true,
-          midline: undefined,
-          gap: undefined,
-        },
-      ],
-    };
-    const res = "a = i[\n\t98\n\tz4\n\t#\n]\n";
-    assertEquals(to_formatted_string(data), res);
+    await t.step({
+      name: "case 2",
+      fn() {
+        const data = top(
+          kv(sym("a"), arr(com("#\n"), tarr(sym("b")), map(), num("98"))),
+        );
+        const res = "a = [\n\t#\n\tb[], (), 98\n]\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
+
+    await t.step({
+      name: "case 3",
+      fn: () => {
+        const data = top(
+          kv(
+            sym("a"),
+            tarr(sym("i"), esc_str("98"), gap("\n"), sym("z4"), com("#\n")),
+          ),
+        );
+        const res = "a = i[\n\t98\n\tz4\n\t#\n]\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
   },
 });

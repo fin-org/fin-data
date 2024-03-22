@@ -70,8 +70,8 @@ export interface MapEntry {
   expanded: boolean;
   parent?: Parent;
   depth?: number;
-  midline: undefined;
-  gap: undefined;
+  midline?: undefined;
+  gap?: undefined;
   indent?: boolean;
 }
 
@@ -148,4 +148,78 @@ export interface DiscardedMap extends ExtendedMap {
 
 export interface DiscardedArray extends ExtendedArray {
   discarded: true;
+}
+
+// HELPER FNS
+
+export function gap(str: string): Gap {
+  return { type: "gap", str };
+}
+
+export function sym(str: string): Symbol {
+  return { type: "symbol", str };
+}
+
+export function num(str: string): Number {
+  return { type: "number", str };
+}
+
+export function raw_str(str: string): RawString {
+  return { type: "raw_string", str, expanded: true };
+}
+
+export function esc_str(str: string): EscapedString {
+  return { type: "escaped_string", str };
+}
+
+export function com(str: string): Comment {
+  return { type: "comment", expanded: true, str };
+}
+
+export function top(...elements: MapElement[]): TopLevel {
+  return { type: "top_level", elements, expanded: true };
+}
+
+export function kv(key: Value, val: Value, eq?: string): MapEntry {
+  return {
+    type: "map_entry",
+    key,
+    eq: { type: "eq", str: eq ?? "=" },
+    val,
+    expanded: Boolean(key.expanded || val.expanded),
+  };
+}
+
+export function map(...elements: MapElement[]): Map {
+  return {
+    type: "map",
+    elements,
+    expanded: elements.some((e) => e.expanded),
+  };
+}
+
+export function tmap(tag: Symbol, ...elements: MapElement[]): Map {
+  return {
+    type: "map",
+    tag,
+    elements,
+    expanded: elements.some((e) => e.expanded),
+  };
+}
+
+export function arr(...elements: ArrayElement[]): Array {
+  return {
+    type: "array",
+    elements,
+    expanded: elements.some((e) => e.expanded),
+  };
+}
+
+export function tarr(tag: Symbol, ...elements: ArrayElement[]): Array {
+  return {
+    type: "array",
+    tag,
+    elements,
+    expanded: elements.some((e) => e.expanded),
+  };
 }
