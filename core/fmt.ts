@@ -46,10 +46,10 @@ export function to_string(node: ast.Node) {
       if (node.tag) stack.push(node.tag);
     } else if (node.str !== undefined) {
       if (requires_space(node, output.at(-1))) {
-        output.push({ type: "raw", str: " " });
+        output.push({ type: "gap", str: " " });
       }
       if (requires_newline(node, output.at(-1))) {
-        output.push({ type: "raw", str: "\n" });
+        output.push({ type: "gap", str: "\n" });
       }
       output.push(node);
     } else {
@@ -78,10 +78,13 @@ export function to_formatted_nodes(data: ast.Node) {
     } else if (node.type === "gap") {
       // --- GAPS ---
       const { parent } = node;
-      if (!parent) throw new Error("no parent");
+      if (!parent) throw node;
 
-      // ignore gaps for inline parents (they're added automatically)
-      if (!parent.expanded) continue;
+      // gaps are correct if inline
+      if (!parent.expanded) {
+        output.push(node);
+        continue;
+      }
 
       if (parent.midline) {
         // midline. capture intent to continue or up to two line feeds
@@ -141,7 +144,9 @@ export function to_formatted_nodes(data: ast.Node) {
       if (!parent) throw new Error("no parent");
 
       // set parent and depth for key/val nodes.
-      if (parent.type !== "map") throw new Error("bad parent type");
+      if (parent.type !== "map" && parent.type !== "top_level") {
+        throw new Error("bad parent type");
+      }
       val.parent = node;
       val.depth = node.depth;
       key.parent = node;
@@ -195,7 +200,10 @@ export function to_formatted_nodes(data: ast.Node) {
       if (!parent) throw new Error("no parent");
 
       // if an array element render gap
-      if (parent.type === "array" && parent.expanded && !node.tag) {
+      if (
+        parent.type === "array" && parent.expanded &&
+        !(node.type === "symbol" && node.tag)
+      ) {
         if (parent.gap !== undefined) {
           output.push({ type: "gap", str: parent.gap });
           parent.midline = !parent.gap.includes("\n");
@@ -237,8 +245,10 @@ export function to_formatted_nodes(data: ast.Node) {
       }
 
       if (!node.expanded) {
-        // remove gaps
-        node.elements = node.elements.filter((el) => el.type !== "gap");
+        // remove gaps. no idea how to make typescript happy here
+        node.elements = node.elements.filter((el) =>
+          el.type !== "gap"
+        ) as (ast.ArrayElement[] | ast.MapElement[]);
       }
 
       stack.push({
@@ -251,7 +261,7 @@ export function to_formatted_nodes(data: ast.Node) {
         el.parent = node;
         el.depth = (node.depth ?? 0) + 1;
         if (i > 0 && !node.expanded) {
-          st.push({ type: "raw", str: ", " });
+          st.push({ type: "gap", str: ", ", parent: node });
         }
         return st;
       }, stack);
@@ -274,7 +284,9 @@ export function to_formatted_nodes(data: ast.Node) {
 
       // assertions
       if (parent === undefined) throw new Error("no parent");
-      if (parent.type === "top_level") throw new Error("bad parent");
+      if (parent.type === "top_level" || parent.type === "map_entry") {
+        throw new Error("bad parent");
+      }
 
       if (parent.tag === null && parent.indent) {
         node.str = "\t".repeat(parent.depth ?? 0) + node.str;
@@ -295,8 +307,6 @@ export function to_formatted_nodes(data: ast.Node) {
         node.str = "\t".repeat(parent.depth ?? 0) + node.str;
         if (parent.midline) node.str = "\n" + node.str;
       }
-      output.push(node);
-    } else if (node.type === "raw") {
       output.push(node);
     } else {
       throw node;

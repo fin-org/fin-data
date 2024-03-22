@@ -1,13 +1,13 @@
 import { assertEquals } from "std/assert/mod.ts";
 import { to_formatted_string } from "./fmt.ts";
+import * as ast from "./ast.ts";
 
 Deno.test({
   name: "gaps and comments",
   fn: () => {
     assertEquals(
       to_formatted_string({
-        type: "map",
-        tag: null,
+        type: "top_level",
         elements: [
           { type: "gap", str: "" },
           { type: "gap", str: " \t\n" },
@@ -23,7 +23,6 @@ Deno.test({
           { type: "gap", str: "," },
         ],
         expanded: true,
-        top: true,
       }),
       "\n#abc\n#熞def\n#鏜\n#🐬\n\n#$.쒃\n",
     );
@@ -33,17 +32,18 @@ Deno.test({
 Deno.test({
   name: "map_entries - same line",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "b" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " , " },
         {
@@ -51,6 +51,9 @@ Deno.test({
           key: { type: "symbol", str: "c" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "d" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "\n\n , \n " },
         {
@@ -58,6 +61,9 @@ Deno.test({
           key: { type: "symbol", str: "e" },
           eq: { type: "eq", str: " =\n" },
           val: { type: "symbol", str: "f" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -69,17 +75,18 @@ Deno.test({
 Deno.test({
   name: "map_entries - separate lines",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "b" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " " },
         {
@@ -87,6 +94,9 @@ Deno.test({
           key: { type: "symbol", str: "c" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "d" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " \n\n\n " },
         {
@@ -94,6 +104,9 @@ Deno.test({
           key: { type: "symbol", str: "e" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "f" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -105,17 +118,18 @@ Deno.test({
 Deno.test({
   name: "map_entries - block vals",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "b" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "," },
         {
@@ -124,6 +138,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|d\n" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "\t, \n\n" },
         {
@@ -132,6 +148,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|f\n" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -143,17 +161,18 @@ Deno.test({
 Deno.test({
   name: "map_entries - block keys",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "b" },
+          expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " , " },
         {
@@ -162,6 +181,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "d" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "\t, \n\n," },
         {
@@ -170,6 +191,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "symbol", str: "f" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -181,11 +204,9 @@ Deno.test({
 Deno.test({
   name: "map_entries - block keys & vals",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         { type: "gap", str: " ,\t" },
         {
@@ -194,6 +215,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|b\n" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "\t,\n\t" },
         {
@@ -202,6 +225,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|d\n" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "\t, " },
         {
@@ -210,6 +235,8 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: { type: "raw_string", str: "|f\n" },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -221,11 +248,9 @@ Deno.test({
 Deno.test({
   name: "inline maps",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         { type: "gap", str: " ,\n" },
         {
@@ -234,11 +259,13 @@ Deno.test({
           eq: { type: "eq", str: ",\t\t=" },
           val: {
             type: "map",
-            tag: null,
+            tag: undefined,
             expanded: false,
             elements: [],
           },
           expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " ,\n" },
         {
@@ -256,19 +283,26 @@ Deno.test({
                 eq: { type: "eq", str: "=" },
                 val: { type: "number", str: "2" },
                 expanded: false,
+                midline: undefined,
+                gap: undefined,
               },
             ],
           },
           expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " \n\t\n" },
         {
           type: "map_entry",
           key: { type: "symbol", str: "c" },
+          midline: undefined,
+          gap: undefined,
+          expanded: false,
           eq: { type: "eq", str: "=" },
           val: {
             type: "map",
-            tag: null,
+            tag: undefined,
             expanded: false,
             elements: [
               {
@@ -277,6 +311,8 @@ Deno.test({
                 eq: { type: "eq", str: "=" },
                 val: { type: "number", str: "2" },
                 expanded: false,
+                midline: undefined,
+                gap: undefined,
               },
               { type: "gap", str: " \t " },
               {
@@ -285,6 +321,8 @@ Deno.test({
                 eq: { type: "eq", str: "=" },
                 val: { type: "number", str: "4" },
                 expanded: false,
+                midline: undefined,
+                gap: undefined,
               },
               { type: "gap", str: "," },
               {
@@ -293,6 +331,8 @@ Deno.test({
                 eq: { type: "eq", str: "=" },
                 val: { type: "number", str: "6" },
                 expanded: false,
+                midline: undefined,
+                gap: undefined,
               },
               { type: "gap", str: "\n\t" },
               {
@@ -301,6 +341,8 @@ Deno.test({
                 eq: { type: "eq", str: "=" },
                 val: { type: "number", str: "8" },
                 expanded: false,
+                midline: undefined,
+                gap: undefined,
               },
               { type: "gap", str: "\n\n\n  \t, " },
             ],
@@ -317,19 +359,19 @@ Deno.test({
 Deno.test({
   name: "expanded maps",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
           key: { type: "symbol", str: "a" },
           eq: { type: "eq", str: "=" },
+          midline: undefined,
+          gap: undefined,
           val: {
             type: "map",
-            tag: null,
+            tag: undefined,
             expanded: true,
             elements: [
               { type: "comment", str: "#\n\t", expanded: true },
@@ -337,6 +379,8 @@ Deno.test({
                 type: "map_entry",
                 key: { type: "symbol", str: "b" },
                 eq: { type: "eq", str: "=" },
+                midline: undefined,
+                gap: undefined,
                 val: {
                   type: "map",
                   tag: { type: "symbol", str: "tag" },
@@ -349,6 +393,8 @@ Deno.test({
                       eq: { type: "eq", str: "=" },
                       val: { type: "number", str: "2" },
                       expanded: false,
+                      midline: undefined,
+                      gap: undefined,
                     },
                     {
                       type: "map_entry",
@@ -361,6 +407,8 @@ Deno.test({
                       eq: { type: "eq", str: "=" },
                       val: { type: "number", str: "3" },
                       expanded: false,
+                      midline: undefined,
+                      gap: undefined,
                     },
                     { type: "gap", str: "\n\n" },
                   ],
@@ -382,11 +430,9 @@ Deno.test({
 Deno.test({
   name: "case 1",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
@@ -394,7 +440,7 @@ Deno.test({
           eq: { type: "eq", str: "\n\n=\n," },
           val: {
             type: "map",
-            tag: null,
+            tag: undefined,
             expanded: false,
             elements: [
               { type: "gap", str: " " },
@@ -403,10 +449,15 @@ Deno.test({
                 key: { type: "number", str: "-7" },
                 eq: { type: "eq", str: "\n ,,=,  , " },
                 val: { type: "number", str: "-0.8" },
+                expanded: false,
+                midline: undefined,
+                gap: undefined,
               },
             ],
           },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: "\n\n" },
       ],
@@ -419,11 +470,9 @@ Deno.test({
 Deno.test({
   name: "inline arrays",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         { type: "gap", str: " ,\n" },
         {
@@ -432,11 +481,13 @@ Deno.test({
           eq: { type: "eq", str: ",\t\t=" },
           val: {
             type: "array",
-            tag: null,
+            tag: undefined,
             expanded: false,
             elements: [],
           },
           expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " ,\n" },
         {
@@ -454,15 +505,20 @@ Deno.test({
             ],
           },
           expanded: false,
+          midline: undefined,
+          gap: undefined,
         },
         { type: "gap", str: " \n\t\n" },
         {
           type: "map_entry",
           key: { type: "symbol", str: "c" },
           eq: { type: "eq", str: "=" },
+          midline: undefined,
+          gap: undefined,
+          expanded: false,
           val: {
             type: "array",
-            tag: null,
+            tag: undefined,
             expanded: false,
             elements: [
               { type: "number", str: "1" },
@@ -486,11 +542,9 @@ Deno.test({
 Deno.test({
   name: "expanded arrays",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
@@ -498,7 +552,7 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: {
             type: "array",
-            tag: null,
+            tag: undefined,
             expanded: true,
             elements: [
               { type: "gap", str: " \n, \t" },
@@ -521,6 +575,8 @@ Deno.test({
             ],
           },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -532,11 +588,9 @@ Deno.test({
 Deno.test({
   name: "case 2",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
@@ -544,7 +598,7 @@ Deno.test({
           eq: { type: "eq", str: "=" },
           val: {
             type: "array",
-            tag: null,
+            tag: undefined,
             expanded: true,
             elements: [
               { type: "comment", str: "#\n" },
@@ -556,7 +610,7 @@ Deno.test({
               },
               {
                 type: "map",
-                tag: null,
+                tag: undefined,
                 expanded: false,
                 elements: [],
               },
@@ -564,6 +618,8 @@ Deno.test({
             ],
           },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };
@@ -575,11 +631,9 @@ Deno.test({
 Deno.test({
   name: "case 3",
   fn: () => {
-    const data = {
-      type: "map",
-      tag: null,
+    const data: ast.TopLevel = {
+      type: "top_level",
       expanded: true,
-      top: true,
       elements: [
         {
           type: "map_entry",
@@ -597,6 +651,8 @@ Deno.test({
             ],
           },
           expanded: true,
+          midline: undefined,
+          gap: undefined,
         },
       ],
     };

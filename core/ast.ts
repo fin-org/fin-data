@@ -12,10 +12,13 @@ export interface Output {
   block?: boolean;
   parent?: Parent;
   depth?: number;
+  indent?: boolean;
 }
 
 export interface Symbol extends Output {
   type: "symbol";
+  tag?: boolean;
+  indent?: boolean;
 }
 
 export interface Number extends Output {
@@ -48,6 +51,7 @@ export interface Map {
   depth?: number;
   midline?: boolean;
   gap?: Gaps;
+  indent?: boolean;
 }
 
 export interface TopLevel {
@@ -68,6 +72,7 @@ export interface MapEntry {
   depth?: number;
   midline: undefined;
   gap: undefined;
+  indent?: boolean;
 }
 
 export interface Array {
@@ -79,15 +84,12 @@ export interface Array {
   depth?: number;
   midline?: boolean;
   gap?: Gaps;
+  indent?: boolean;
 }
 
 // EXTRA
 
-export type Extra = Eq | Open | Close | Raw;
-
-export interface Raw extends Output {
-  type: "raw";
-}
+export type Extra = Eq | Open | Close;
 
 export interface Eq extends Output {
   type: "eq";
