@@ -112,12 +112,10 @@ export interface ExtendedSymbol extends Symbol {
 }
 
 export interface ExtendedMap extends Map {
-  ext: true;
   tag: ExtendedSymbol;
 }
 
 export interface ExtendedArray extends Array {
-  ext: true;
   tag: ExtendedSymbol;
 }
 
@@ -142,12 +140,12 @@ export interface DiscardedSymbol extends ExtendedSymbol {
   discarded: true;
 }
 
-export interface DiscardedMap extends ExtendedMap {
-  discarded: true;
+export interface DiscardedMap extends Map {
+  tag: DiscardedSymbol;
 }
 
-export interface DiscardedArray extends ExtendedArray {
-  discarded: true;
+export interface DiscardedArray extends Array {
+  tag: DiscardedSymbol;
 }
 
 // HELPER FNS
@@ -158,6 +156,20 @@ export function gap(str: string): Gap {
 
 export function sym(str: string): Symbol {
   return { type: "symbol", str };
+}
+
+export function esym(str: string): ExtendedSymbol {
+  if (
+    (!str.startsWith("fin:") && !str.startsWith("ext:")) || str.endsWith("_")
+  ) throw str;
+  return { type: "symbol", str, ext: true };
+}
+
+export function dsym(str: string): DiscardedSymbol {
+  if (
+    (!str.startsWith("fin:") && !str.startsWith("ext:")) || !str.endsWith("_")
+  ) throw new Error("bad symbol");
+  return { type: "symbol", str, ext: true, discarded: true };
 }
 
 export function num(str: string): Number {
@@ -198,7 +210,10 @@ export function map(...elements: MapElement[]): Map {
   };
 }
 
-export function tmap(tag: Symbol, ...elements: MapElement[]): Map {
+export function tmap(
+  tag: Symbol | ExtendedSymbol | DiscardedSymbol,
+  ...elements: MapElement[]
+): Map | ExtendedMap | DiscardedMap {
   return {
     type: "map",
     tag,
@@ -215,7 +230,10 @@ export function arr(...elements: ArrayElement[]): Array {
   };
 }
 
-export function tarr(tag: Symbol, ...elements: ArrayElement[]): Array {
+export function tarr(
+  tag: Symbol | ExtendedSymbol | DiscardedSymbol,
+  ...elements: ArrayElement[]
+): Array | ExtendedMap | DiscardedMap {
   return {
     type: "array",
     tag,

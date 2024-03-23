@@ -1,21 +1,44 @@
 import * as fc from "fast-check";
 import * as ast from "./ast.ts";
-import * as fmt from "./format.ts";
 
 // SYMBOLS
 
-export const symbol: fc.Arbitrary<ast.Symbol> = fc.stringMatching(
+const symbol_str = fc.stringMatching(
   /^[a-z_:][a-z_:\d]*$/,
 ).map((s) => (s.replace(/::+/g, ":").replace(/__+/g, "_")))
   .filter((s) => !s.endsWith(":"))
-  .filter((s) => !/:\d/.test(s))
-  .filter((s) => {
-    if (s.startsWith("fin:")) return false;
-    if (s.startsWith("ext:")) return false;
-    if (s === "true" || s === "false") return false;
-    return true;
-  })
-  .map((str) => ({ type: "symbol", str }));
+  .filter((s) => !/:\d/.test(s));
+
+export const symbol: fc.Arbitrary<ast.Symbol> = symbol_str.filter((s) => {
+  if (s.startsWith("fin:")) return false;
+  if (s.startsWith("ext:")) return false;
+  if (s === "true" || s === "false") return false;
+  return true;
+}).map((str) => ({ type: "symbol", str }));
+
+function ext_symbol(
+  prefix?: "fin:" | "ext:",
+): fc.Arbitrary<ast.ExtendedSymbol> {
+  const pre = prefix ? fc.constant(prefix) : fc.constantFrom("fin:", "ext:");
+  return fc.tuple(pre, symbol_str)
+    .filter(([_, s]) => !s.endsWith("_"))
+    .map(([p, s]) => ({
+      type: "symbol",
+      str: `${p}${s.startsWith(":") ? s.slice(1) : s}`,
+      ext: true,
+    }));
+}
+
+function dis_symbol(
+  prefix?: "fin:" | "ext:",
+): fc.Arbitrary<ast.DiscardedSymbol> {
+  return ext_symbol(prefix).map(({ str }) => ({
+    type: "symbol",
+    str: str + "_",
+    ext: true,
+    discarded: true,
+  }));
+}
 
 // NUMBERS
 
@@ -141,21 +164,34 @@ const tag = fc.oneof(
 
 // DATA
 
-export const { array, map } = fc.letrec((arb) => {
+export const { array, map } = fc.letrec((sub) => {
+  const sub_array = sub("array") as fc.Arbitrary<ast.Array>;
+  const sub_map = sub("map") as fc.Arbitrary<ast.Map>;
+
+  const ext_coll: fc.Arbitrary<ast.ExtendedArray | ast.ExtendedMap> = fc.tuple(
+    ext_symbol(),
+    fc.oneof(sub_array, sub_map),
+  ).map(([tag, arr]) => ({ ...arr, tag }));
+
   const value: fc.Arbitrary<ast.Value> = fc.oneof(
     { arbitrary: symbol, weight: 1 },
     { arbitrary: number, weight: 1 },
     { arbitrary: escaped_string, weight: 1 },
     { arbitrary: raw_string, weight: 1 },
+    { arbitrary: sub_array, weight: 1 },
+    { arbitrary: sub_map, weight: 1 },
+    // extensions
+    { arbitrary: ext_symbol(), weight: 1 },
+    { arbitrary: ext_coll, weight: 1 },
     { arbitrary: boolean, weight: 1 },
-    { arbitrary: arb("array") as fc.Arbitrary<ast.Array>, weight: 1 },
-    { arbitrary: arb("map") as fc.Arbitrary<ast.Map>, weight: 1 },
   );
 
   const non_value: fc.Arbitrary<ast.NonValue> = fc.oneof(
     { arbitrary: comment, weight: 1 },
     { arbitrary: gap, weight: 3 },
-    // TODO discarded extensions
+    // TODO impl. formatting discards
+    // { arbitrary: dis_symbol(), weight: 1 },
+    // { arbitrary: dis_coll, weight: 1 },
   );
 
   const array_elements: fc.Arbitrary<ast.ArrayElement[]> = fc.array(fc.oneof(
@@ -219,6 +255,10 @@ export const top_level: fc.Arbitrary<ast.TopLevel> = map.map(
 if (import.meta.main) {
   console.log("\nsymbols...");
   for (const s of fc.sample(symbol, 5)) console.log(s);
+  console.log("\nextended symbols...");
+  for (const s of fc.sample(ext_symbol(), 5)) console.log(s);
+  console.log("\ndiscarded symbols...");
+  for (const s of fc.sample(dis_symbol(), 5)) console.log(s);
   console.log("\nnumbers...");
   for (const s of fc.sample(number, 5)) console.log(s);
   console.log("\nescaped strings...");
@@ -228,5 +268,5 @@ if (import.meta.main) {
   console.log("\ncomments...");
   for (const s of fc.sample(comment, 5)) console.log(s);
   console.log("\ntop level value...");
-  console.log(fc.sample(top_level, 1));
+  console.log(JSON.stringify(fc.sample(top_level, 1), null, 2));
 }

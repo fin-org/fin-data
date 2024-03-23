@@ -230,10 +230,9 @@ export function to_formatted_nodes(data: ast.Node) {
       // assertions
       if (!parent) throw new Error("no parent");
 
-      // if an array element render gap
-      if (parent.type === "array") {
+      // if an expanded array element render gap
+      if (parent.type === "array" && parent.expanded) {
         if (parent.gap !== undefined) {
-          if (!parent.expanded) throw new Error("gaps have not been stripped");
           output.push({ type: "gap", str: parent.gap });
           parent.midline = !parent.gap.includes("\n");
           parent.gap = undefined;
@@ -288,7 +287,7 @@ export function to_formatted_nodes(data: ast.Node) {
         throw new Error("bad parent");
       }
 
-      if (parent.tag === null && parent.indent) {
+      if (parent.tag === undefined && parent.indent) {
         node.str = "\t".repeat(parent.depth ?? 0) + node.str;
       }
       if (parent.expanded) node.str += "\n";
@@ -326,5 +325,10 @@ export function to_formatted_string(data: ast.Node) {
 }
 
 if (import.meta.main) {
-  //
+  console.log("generating formatted fin data...\n");
+  const fc = await import("fast-check");
+  const gen = await import("./gen.ts");
+  const [top] = fc.sample(gen.top_level, 1);
+  // console.log(JSON.stringify(top, null, 2));
+  console.log(to_formatted_string(top));
 }

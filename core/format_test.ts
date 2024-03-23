@@ -4,6 +4,7 @@ import {
   arr,
   com,
   esc_str,
+  esym,
   gap,
   kv,
   map,
@@ -268,6 +269,53 @@ Deno.test({
           ),
         );
         const res = "a = i[\n\t98\n\tz4\n\t#\n]\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
+
+    await t.step({
+      name: "case 4",
+      fn: () => {
+        const data = top(
+          gap("\n"),
+          kv(
+            tarr(
+              esym("ext:m:_7"),
+              esym("fin:_25_6"),
+              esym("ext:c5"),
+              tmap(
+                esym("fin:_8"),
+                gap(",,\t,"),
+                gap(" \n "),
+                kv(
+                  esym("ext:u"),
+                  tarr(
+                    esym("ext:i:t"),
+                    gap("\n \n,"),
+                    gap(",, "),
+                    gap(" ,\t,"),
+                    esym("fin:_:_:t55"),
+                  ),
+                ),
+              ),
+              gap(","),
+              gap(""),
+              tarr(esym("fin:_0_1"), esym("fin:_:_1_8:w")),
+            ),
+            esym("ext:done"),
+          ),
+        );
+        const res =
+          "\next:m:_7[fin:_25_6, ext:c5, fin:_8(ext:u = ext:i:t[fin:_:_:t55]), fin:_0_1[fin:_:_1_8:w]] = ext:done\n";
+        assertEquals(to_formatted_string(data), res);
+      },
+    });
+
+    await t.step({
+      name: "case 5",
+      fn: () => {
+        const data = top(kv(sym("a"), map(com("#"), kv(arr(), arr()))));
+        const res = "a = (\n\t#\n\t[] = []\n)\n";
         assertEquals(to_formatted_string(data), res);
       },
     });
