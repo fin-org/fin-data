@@ -15,8 +15,6 @@ import {
   top,
 } from "./ast.ts";
 
-// TODO some PBTs.
-
 Deno.test({
   name: "gaps and comments",
   fn: () => {

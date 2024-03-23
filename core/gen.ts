@@ -53,16 +53,21 @@ export const number: fc.Arbitrary<ast.Number> = fc.tuple(
 
 // ESCAPED STRINGS
 
-const unicode_char = fc.fullUnicode().map((s) => {
-  // don't allow \ or "
-  if (s === "\\") return "";
-  if (s === '"') return "";
-  return s;
+const unicode_char = fc.oneof(fc.ascii(), fc.fullUnicode()).map((s) => {
+  // common escapes
+  if (s === "\\") return "\\\\";
+  if (s === '"') return '\\"';
+  if (s === "\n") return "\\\n";
+  if (s === "\r") return "\\\r";
+  if (s === "\t") return "\\\t";
+  // escape everything <= U+001F
+  const cp = s.charCodeAt(0);
+  if (cp <= 0x1F) return `\\u{${cp.toString(16)}}`;
+  return s; // everything else is unescaped.
 });
 
-const common_esc = fc.constantFrom("\\\\", '\\"', "\\t", "\\r", "\\n");
-
-const unicode_esc = fc.fullUnicode().map((s) => {
+// full unicode escape sequences are always allowed
+const unicode_esc_seq = fc.fullUnicode().map((s) => {
   const cp = s.codePointAt(0) ?? 0;
   return `\\u{${cp.toString(16)}}`;
 });
@@ -70,8 +75,7 @@ const unicode_esc = fc.fullUnicode().map((s) => {
 export const escaped_string: fc.Arbitrary<ast.EscapedString> = fc.stringOf(
   fc.oneof(
     { arbitrary: unicode_char, weight: 10 },
-    { arbitrary: common_esc, weight: 2 },
-    { arbitrary: unicode_esc, weight: 1 },
+    { arbitrary: unicode_esc_seq, weight: 1 },
   ),
 ).map((inner) => ({
   type: "escaped_string",
@@ -82,15 +86,11 @@ export const escaped_string: fc.Arbitrary<ast.EscapedString> = fc.stringOf(
 
 function line(start: string) {
   return fc.stringOf(
-    fc.fullUnicode().map((s) => {
-      // don't allow line feed
-      if (s === "\n") return "";
-      return s;
-    }),
+    fc.oneof(fc.ascii(), fc.fullUnicode()).map((s) => s === "\n" ? "" : s),
   ).map((s) => `${start}${s}\n`);
 }
 
-const indent = fc.stringOf(fc.constantFrom("\t", " "), { maxLength: 6 });
+const indent = fc.stringOf(fc.constantFrom("\t", " "), { maxLength: 4 });
 
 function raw_block(start: string) {
   return fc.array(fc.tuple(line(start), indent), {
@@ -210,12 +210,8 @@ export const { array, map } = fc.letrec((arb) => {
   return { array, map };
 });
 
-const top_level: fc.Arbitrary<ast.TopLevel> = map.map(
+export const top_level: fc.Arbitrary<ast.TopLevel> = map.map(
   (m) => ({ type: "top_level", expanded: true, elements: m.elements }),
-);
-
-const fmt_pair: fc.Arbitrary<[string, string]> = top_level.map(
-  (m) => [fmt.to_string(m), fmt.to_formatted_string(m)],
 );
 
 // SAMPLES
@@ -233,6 +229,4 @@ if (import.meta.main) {
   for (const s of fc.sample(comment, 5)) console.log(s);
   console.log("\ntop level value...");
   console.log(fc.sample(top_level, 1));
-  console.log("\nformat pair...");
-  console.log(fc.sample(fmt_pair, 1));
 }
