@@ -133,9 +133,7 @@ export const comment: fc.Arbitrary<ast.Comment> = raw_block("#").map(
   (b) => ({ ...b, type: "comment" }),
 );
 
-// EXTENSIONS
-
-// TODO add builtins, custom extensions and discards
+// BUILTINS
 
 export const boolean: fc.Arbitrary<ast.ExtendedSymbol> = fc.boolean()
   .map((b) => ({
@@ -143,6 +141,24 @@ export const boolean: fc.Arbitrary<ast.ExtendedSymbol> = fc.boolean()
     str: `${b}`,
     ext: true,
   }));
+
+export const timestamp: fc.Arbitrary<ast.ExtendedArray> = fc.date({
+  min: new Date("0001-01-01T00:00:00Z"),
+  max: new Date("9999-12-31T23:59:59Z"),
+}).map((d) => {
+  const parent: ast.ExtendedArray = {
+    type: "array",
+    tag: { type: "symbol", ext: true, str: "fin:timestamp" },
+    expanded: false,
+    elements: [],
+  };
+  parent.elements.push({
+    type: "escaped_string",
+    str: `"${d.toISOString()}"`,
+    parent,
+  });
+  return parent;
+});
 
 // GAPS
 
@@ -183,7 +199,9 @@ export const { array, map } = fc.letrec((sub) => {
     // extensions
     { arbitrary: ext_symbol(), weight: 1 },
     { arbitrary: ext_coll, weight: 1 },
+    // builtins
     { arbitrary: boolean, weight: 1 },
+    { arbitrary: timestamp, weight: 1 },
   );
 
   const non_value: fc.Arbitrary<ast.NonValue> = fc.oneof(
@@ -216,8 +234,6 @@ export const { array, map } = fc.letrec((sub) => {
     eq,
     val,
     expanded: Boolean(key.expanded || val.expanded),
-    midline: undefined,
-    gap: undefined,
   }));
 
   const map_elements: fc.Arbitrary<ast.MapElement[]> = fc.array(fc.oneof(
@@ -267,6 +283,4 @@ if (import.meta.main) {
   for (const s of fc.sample(raw_string, 5)) console.log(s);
   console.log("\ncomments...");
   for (const s of fc.sample(comment, 5)) console.log(s);
-  console.log("\ntop level value...");
-  console.log(JSON.stringify(fc.sample(top_level, 1), null, 2));
 }
