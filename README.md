@@ -1,6 +1,7 @@
 # fin-data
 
-- generate arbitrary unformatted [fin data](https://findata.dev) using [fast-check](https://fast-check.dev/)
+- generate arbitrary unformatted [fin data](https://findata.dev) using
+  [fast-check](https://fast-check.dev/)
 - include a reference implementation for formatting
 - `/core` directory follows the [core spec](https://findata.dev/spec) (with builtins).
 - intention is to provide a language-agnostic framework to test & benchmark fin encoders/decoders.
