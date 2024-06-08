@@ -80,9 +80,9 @@ const unicode_char = fc.oneof(fc.ascii(), fc.fullUnicode()).map((s) => {
 	// common escapes
 	if (s === "\\") return "\\\\";
 	if (s === '"') return '\\"';
-	if (s === "\n") return "\\\n";
-	if (s === "\r") return "\\\r";
-	if (s === "\t") return "\\\t";
+	if (s === "\n") return "\\n";
+	if (s === "\r") return "\\r";
+	if (s === "\t") return "\\t";
 	// escape everything <= U+001F
 	const cp = s.charCodeAt(0);
 	if (cp <= 0x1f) return `\\u{${cp.toString(16)}}`;
@@ -92,6 +92,7 @@ const unicode_char = fc.oneof(fc.ascii(), fc.fullUnicode()).map((s) => {
 // full unicode escape sequences are always allowed
 const unicode_esc_seq = fc.fullUnicode().map((s) => {
 	const cp = s.codePointAt(0) ?? 0;
+
 	return `\\u{${cp.toString(16)}}`;
 });
 
@@ -173,7 +174,10 @@ export const timestamp: fc.Arbitrary<ast.ExtendedArray> = fc
 // GAPS
 
 const gap: fc.Arbitrary<ast.Gap> = fc
-	.array(fc.constantFrom("\n", "\t", " ", ",", ","), { maxLength: 4 })
+	.array(fc.constantFrom("\n", "\t", " ", ",", ","), {
+		minLength: 1,
+		maxLength: 4,
+	})
 	.map((arr) => ({ type: "gap", str: arr.join("") }));
 
 // EQ

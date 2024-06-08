@@ -36,6 +36,9 @@ export function to_string(node: ast.Node) {
 			stack.push({ type: "open", str: "(" });
 			if (node.tag) stack.push(node.tag);
 		} else if (node.type === "map_entry") {
+			if (node.val.type === "number" || node.val.type === "symbol") {
+				stack.push({ type: "gap", str: " " });
+			}
 			stack.push(node.val);
 			stack.push(node.eq);
 			stack.push(node.key);
@@ -176,7 +179,8 @@ export function to_formatted_nodes(data: ast.Node) {
 
 				// render key/val
 				stack.push(val);
-				node.eq.str = (key_block ? "\t".repeat(node.depth ?? 0) : " ") +
+				node.eq.str =
+					(key_block ? "\t".repeat(node.depth ?? 0) : " ") +
 					"=" +
 					(val_block ? "\n" : " ");
 				stack.push(node.eq);
@@ -331,10 +335,9 @@ export function to_formatted_string(data: ast.Node) {
 }
 
 if (import.meta.main) {
-	console.log("generating formatted fin data...\n");
 	const fc = await import("fast-check");
 	const gen = await import("./gen.ts");
 	const [top] = fc.sample(gen.top_level, 1);
-	// console.log(JSON.stringify(top, null, 2));
-	console.log(to_formatted_string(top));
+	console.error(Deno.inspect(top, { colors: true, depth: 20 }));
+	console.log(to_string(top));
 }
